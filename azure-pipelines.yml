@@ -74,7 +74,7 @@ stages:
 
       - script: |
           sudo apt update
-          sudo apt install -y mpich openmpi-bin libopenmpi-dev libmpich-dev
+          sudo apt install -y mpich openmpi-bin libopenmpi-dev libmpich-dev libboost-all-dev
         displayName: 'Install Test System Depdendencies'
 
       - template: ci/azure-wheel-test-upload.yml
@@ -127,7 +127,7 @@ stages:
 
       - script: |
           sudo apt update
-          sudo apt install -y mpich openmpi-bin libopenmpi-dev libmpich-dev
+          sudo apt install -y mpich openmpi-bin libopenmpi-dev libmpich-dev libboost-all-dev
         displayName: 'Install Test System Depdendencies'
 
       - template: ci/azure-wheel-test-upload.yml
