@@ -39,9 +39,14 @@ extern void debugzz(Inst*);
 int hoc_return_type_code = 0; /* flag for allowing integers (1) and booleans (2) to be recognized as
                                  such */
 
-
-using StackDatum =
-    std::variant<double, Symbol*, int, Object**, Object*, char**, neuron::container::generic_data_handle, std::nullptr_t>;
+using StackDatum = std::variant<double,
+                                Symbol*,
+                                int,
+                                Object**,
+                                Object*,
+                                char**,
+                                neuron::container::generic_data_handle,
+                                std::nullptr_t>;
 
 /** @brief The stack.
  *
@@ -245,7 +250,7 @@ template int const& hoc_look_inside_stack(int);
 template Object** const& hoc_look_inside_stack(int);
 template Object* const& hoc_look_inside_stack(int);
 template char** const& hoc_look_inside_stack(int);
-template double* const& hoc_look_inside_stack(int);
+template neuron::container::generic_data_handle const& hoc_look_inside_stack(int);
 template std::nullptr_t const& hoc_look_inside_stack(int);
 namespace {
 bool stack_entry_is_tmpobject(StackDatum const& entry) {
@@ -267,7 +272,7 @@ void unref_if_tmpobject(StackDatum& entry) {
 int get_legacy_int_type(StackDatum const& entry) {
     if (std::holds_alternative<char**>(entry)) {
         return STRING;
-    } else if (std::holds_alternative<double*>(entry)) {
+    } else if (std::holds_alternative<neuron::container::generic_data_handle>(entry)) {
         return VAR;
     } else if (std::holds_alternative<double>(entry)) {
         return NUMBER;
@@ -650,10 +655,6 @@ int hoc_xopen_run(Symbol* sp, const char* str) { /*recursively parse and execute
     Frame *sframe = rframe, *sfp = fp;
     Inst *sprogbase = progbase, *sprogp = progp, *spc = pc,
          *sprog_parse_recover = prog_parse_recover;
-    Symlist* sp_symlist = p_symlist;
-    std::size_t sstack{rstack}, sstackp{stack.size()};
-    rframe = fp;
-    rstack = stack.size();
     progbase = progp;
     p_symlist = (Symlist*) 0;
 
@@ -880,8 +881,7 @@ namespace neuron {
 /** @brief hoc_pop<generic_data_handle>()
  */
 container::generic_data_handle oc::detail::hoc_pop_helper<container::generic_data_handle>::impl() {
-    // We allocated a generic_data_handle with `new` when pushing to the stack
-    return *std::unique_ptr<container::generic_data_handle>{pop_value(VAR).generic_handle};
+    return pop_value<neuron::container::generic_data_handle>();
 }
 }  // namespace neuron
 
@@ -1565,17 +1565,18 @@ void hoc_Argtype() {
         itype = -1;
     } else {
         auto const& entry = f->argn[iarg - f->nargs];
-        itype = std::visit(overloaded{[](double) { return 0; },
-                                      [](Object*) { return 1; },
-                                      [](Object**) { return 1; },
-                                      [](char**) { return 2; },
-                                      [](double*) { return 3; },
-                                      [](auto const& x) -> int {
-                                          throw std::runtime_error(
-                                              "hoc_Argtype didn't expect argument of type " +
-                                              cxx_demangle(typeid(decltype(x)).name()));
-                                      }},
-                           entry);
+        itype =
+            std::visit(overloaded{[](double) { return 0; },
+                                  [](Object*) { return 1; },
+                                  [](Object**) { return 1; },
+                                  [](char**) { return 2; },
+                                  [](neuron::container::generic_data_handle const&) { return 3; },
+                                  [](auto const& x) -> int {
+                                      throw std::runtime_error(
+                                          "hoc_Argtype didn't expect argument of type " +
+                                          cxx_demangle(typeid(decltype(x)).name()));
+                                  }},
+                       entry);
     }
     hoc_retpushx(itype);
 }
