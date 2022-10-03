@@ -98,10 +98,10 @@ void solv_diffeq(Item* qsol,
             Sprintf(buf, "static int _deriv%d_advance = 0;\n", listnum);
             q = linsertstr(procfunc, buf);
             Sprintf(buf,
-                    "\n#define _deriv%d_advance std::get<int>(_thread[%d])\n"
+                    "\n#define _deriv%d_advance get<int>(_thread[%d])\n"
                     "#define _dith%d %d\n"
-                    "#define _recurse std::get<int>(_thread[%d])\n"
-                    "#define _newtonspace%d std::get<void*>(_thread[%d])\n",
+                    "#define _recurse get<int>(_thread[%d])\n"
+                    "#define _newtonspace%d get<void*>(_thread[%d])\n",
                     listnum,
                     thread_data_index,
                     listnum,
