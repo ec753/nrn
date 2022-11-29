@@ -32,7 +32,7 @@ struct NrnThread;
 class NetCvode;
 class HocEventPool;
 class HocCommand;
-class STETransition;
+struct STETransition;
 class IvocVect;
 class Multisend_Send;
 class Multisend_Send_Phase2;
