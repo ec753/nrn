@@ -6,7 +6,7 @@
 namespace neuron::container::Node {
 /** @brief Underlying storage for all Nodes.
  */
-struct storage: soa<storage, field::Area, field::Voltage> {};
+struct storage: soa<storage, field::Area, field::Voltage, field::RHS> {};
 
 /**
  * @brief Non-owning handle to a Node.

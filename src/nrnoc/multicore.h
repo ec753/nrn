@@ -91,6 +91,13 @@ struct NrnThread {
             _node_data_offset);
     }
 
+    double* node_rhs_storage() {
+        // Need to be able to use this method while the model is frozen, so
+        // avoid calling the zero-parameter get()
+        return &neuron::model().node_data().get<neuron::container::Node::field::RHS>(
+            _node_data_offset);
+    }
+
     double& actual_area(std::size_t row) {
         assert(neuron::model().node_data().is_sorted());
         return neuron::model().node_data().get<neuron::container::Node::field::Area>(
@@ -103,13 +110,19 @@ struct NrnThread {
             _node_data_offset + row);
     }
 
-    double* _actual_rhs;
+    double& actual_rhs(std::size_t row) {
+        assert(neuron::model().node_data().is_sorted());
+        return neuron::model().node_data().get<neuron::container::Node::field::RHS>(
+            _node_data_offset + row);
+    }
+
     double* _actual_d;
     double* _actual_a;
     double* _actual_b;
     int* _v_parent_index;
     Node** _v_node;
     Node** _v_parent;
+    double* _sp13_rhs;
     char* _sp13mat;              /* handle to general sparse matrix */
     Memb_list* _ecell_memb_list; /* normally nil */
     Node** _ecell_children;      /* nodes with no extcell but parent has it */

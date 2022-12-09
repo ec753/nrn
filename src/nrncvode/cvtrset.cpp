@@ -32,7 +32,7 @@ void Cvode::rhs(neuron::model_sorted_token const& sorted_token, NrnThread* _nt) 
     }
 
     rhs_memb(sorted_token, z.cv_memb_list_, _nt);
-    nrn_nonvint_block_current(_nt->end, _nt->_actual_rhs, _nt->id);
+    nrn_nonvint_block_current(_nt->end, _nt->node_rhs_storage(), _nt->id);
 
     if (_nt->_nrn_fast_imem) {
         double* p = _nt->_nrn_fast_imem->_nrn_sav_rhs;
@@ -88,7 +88,7 @@ void Cvode::lhs(NrnThread* _nt) {
     }
 
     lhs_memb(z.cv_memb_list_, _nt);
-    nrn_nonvint_block_conductance(_nt->end, _nt->_actual_rhs, _nt->id);
+    nrn_nonvint_block_conductance(_nt->end, _nt->node_rhs_storage(), _nt->id);
     for (auto& ml: z.cmlcap_->ml) {
         nrn_cap_jacob(_nt, &ml);
     }

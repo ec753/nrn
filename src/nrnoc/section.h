@@ -99,12 +99,12 @@ the notify_free_val parameter in node_free in solve.cpp
 */
 
 #define NODED(n)   (*((n)->_d))
-#define NODERHS(n) (*((n)->_rhs))
 
 #undef NODEV /* sparc-sun-solaris2.9 */
 
 #define NODEV(n)    ((n)->v_hack())
 #define NODEAREA(n) ((n)->area())
+#define NODERHS(n) ((n)->rhs())
 #define NODERINV(n) ((n)->_rinv)
 // The VEC_* vectors access the underlying array storage, i.e. the vectors that
 // live inside structures like neuron::model().node_data().
@@ -113,7 +113,7 @@ the notify_free_val parameter in node_free in solve.cpp
 #define VEC_A(i)    (_nt->_actual_a[(i)])
 #define VEC_B(i)    (_nt->_actual_b[(i)])
 #define VEC_D(i)    (_nt->_actual_d[(i)])
-#define VEC_RHS(i)  (_nt->_actual_rhs[(i)])
+#define VEC_RHS(i)  (_nt->actual_rhs(i))
 #define VEC_V(i)    (_nt->actual_v(i))
 #define VEC_AREA(i) (_nt->actual_area(i))
 #define NODEA(n)    (VEC_A((n)->v_node_index))
@@ -160,9 +160,21 @@ struct Node {
     void set_v(neuron::container::Node::field::Voltage::type v) {
         _node_handle.set_v(v);
     }
+    [[nodiscard]] auto& rhs() {
+        return _node_handle.rhs();
+    }
+    [[nodiscard]] auto const& rhs() const {
+        return _node_handle.rhs();
+    }
+    [[nodiscard]] auto rhs_handle() {
+        return _node_handle.rhs_handle();
+    }
+    void set_rhs(neuron::container::Node::field::RHS::type rhs) {
+        _node_handle.set_rhs(rhs);
+    }
     double _rinv{}; /* conductance uS from node to parent */
     double* _d;     /* diagonal element in node equation */
-    double* _rhs;   /* right hand side in node equation */
+    double* _sp13_rhs;
     double* _a_matelm;
     double* _b_matelm;
     int eqn_index_;                 /* sparse13 matrix row/col index */
