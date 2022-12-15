@@ -965,11 +965,17 @@ int hoc_main1(int argc, const char** argv, const char** envp) {
             ++gargv;
             --gargc;
         }
+        // If we pass multiple HOC files to special then this loop runs once for each one of them
         while (hoc_moreinput()) {
             exit_status = hoc_run1();
+            if (exit_status) {
+                // Abort if one of the HOC files we're processing gives an error
+                break;
+            }
         }
         return exit_status;
-    } catch (...) {
+    } catch (std::exception const& e) {
+        std::cerr << "hoc_main1 caught exception: " << e.what() << std::endl;
         nrn_exit(1);
     }
 }
@@ -1289,7 +1295,12 @@ static int hoc_run1() {
                 }
             } catch (std::exception const& e) {
                 hoc_fin = sav_fin;
-                std::cerr << "hoc_run1: caught exception: " << e.what() << std::endl;
+                std::cerr << "hoc_run1: caught exception";
+                std::string_view what{e.what()};
+                if (!what.empty()) {
+                    std::cerr << ": " << what;
+                }
+                std::cerr << std::endl;
                 // Exit if we're not in interactive mode
                 if (!nrn_fw_eq(hoc_fin, stdin)) {
                     return EXIT_FAILURE;

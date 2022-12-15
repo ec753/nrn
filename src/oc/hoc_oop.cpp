@@ -625,7 +625,8 @@ static void call_constructor(Object* ob, Symbol* sym, int narg) {
     pcsav = pc;
 
     push_frame(sym, narg);
-    ob->u.this_pointer = (ob->ctemplate->constructor)(ob);
+    ob->u.this_pointer =
+        neuron::oc::invoke_method_that_may_throw("CONSTRUCTOR", ob->ctemplate->constructor, ob);
     pop_frame();
 
     pc = pcsav;
