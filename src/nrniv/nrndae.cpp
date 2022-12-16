@@ -40,7 +40,7 @@ void nrndae_alloc() {
     nrn_thread_error("NrnDAE only one thread allowed");
     int neqn = _nt->end;
     if (_nt->_ecell_memb_list) {
-        neqn += _nt->_ecell_memb_list->nodecount * nlayer;
+        neqn += _nt->_ecell_memb_list->_nodecount * nlayer;
     }
     for (NrnDAEPtrListIterator m = nrndae_list.begin(); m != nrndae_list.end(); m++) {
         (*m)->alloc(neqn + 1);

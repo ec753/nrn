@@ -1469,14 +1469,14 @@ void CvodeThreadData::delete_memb_list(CvMembList* cmlist) {
         auto const& ml = cml->ml;
         cmlnext = cml->next;
         for (auto const& ml: cml->ml) {
-            delete[] ml.nodelist;
+            delete[] ml._nodelist;
 #if CACHEVEC
-            delete[] ml.nodeindices;
+            delete[] ml._nodeindices;
 #endif
             if (memb_func[cml->index].hoc_mech) {
                 delete[] ml.prop;
             } else {
-                delete[] ml.pdata;
+                delete[] ml._pdata;
             }
         }
         delete cml;
@@ -1633,8 +1633,8 @@ bool NetCvode::init_global() {
                 i = tml->index;
                 Memb_func* mf = memb_func + i;
                 Memb_list* ml = tml->ml;
-                if (ml->nodecount && (i == CAP || mf->current || mf->ode_count || mf->ode_matsol ||
-                                      mf->ode_spec || mf->state)) {
+                if (ml->_nodecount && (i == CAP || mf->current || mf->ode_count || mf->ode_matsol ||
+                                       mf->ode_spec || mf->state)) {
                     // maintain same order (not reversed) for
                     // singly linked list built below
                     cml = new CvMembList{i};
@@ -1650,16 +1650,16 @@ bool NetCvode::init_global() {
                     assert(mech_offset != std::numeric_limits<std::size_t>::max());
                     assert(cml->ml.size() == 1);
                     cml->ml[0].set_storage_offset(mech_offset);
-                    cml->ml[0].nodecount = ml->nodecount;
+                    cml->ml[0]._nodecount = ml->_nodecount;
                     // assumes cell info grouped contiguously
-                    cml->ml[0].nodelist = ml->nodelist;
+                    cml->ml[0]._nodelist = ml->_nodelist;
 #if CACHEVEC
-                    cml->ml[0].nodeindices = ml->nodeindices;
+                    cml->ml[0]._nodeindices = ml->_nodeindices;
 #endif
                     if (mf->hoc_mech) {
                         cml->ml[0].prop = ml->prop;
                     } else {
-                        cml->ml[0].pdata = ml->pdata;
+                        cml->ml[0]._pdata = ml->_pdata;
                     }
                     cml->ml[0]._thread = ml->_thread;
                 }
@@ -1676,8 +1676,8 @@ bool NetCvode::init_global() {
                 if (mf->is_point && !nrn_is_artificial_[i]) {
                     Memb_list* ml = tml->ml;
                     int j;
-                    for (j = 0; j < ml->nodecount; ++j) {
-                        auto& datum = mf->hoc_mech ? ml->prop[j]->dparam[1] : ml->pdata[j][1];
+                    for (j = 0; j < ml->_nodecount; ++j) {
+                        auto& datum = mf->hoc_mech ? ml->prop[j]->dparam[1] : ml->_pdata[j][1];
                         auto* pp = datum.get<Point_process*>();
                         pp->nvi_ = gcv_;
                     }
@@ -1758,34 +1758,34 @@ bool NetCvode::init_global() {
                 i = tml->index;
                 Memb_func* mf = memb_func + i;
                 Memb_list* ml = tml->ml;
-                if (ml->nodecount &&
+                if (ml->_nodecount &&
                     (mf->current || mf->ode_count || mf->ode_matsol || mf->ode_spec || mf->state ||
                      i == CAP || ba_candidate.count(i) == 1)) {
                     // maintain same order (not reversed) for
                     // singly linked list built below
                     int j;
-                    for (j = 0; j < ml->nodecount; ++j) {
-                        int inode = ml->nodelist[j]->v_node_index;
+                    for (j = 0; j < ml->_nodecount; ++j) {
+                        int inode = ml->_nodelist[j]->v_node_index;
                         Cvode& cv = d.lcv_[cellnum[inode]];
                         CvodeThreadData& z = cv.ctd_[0];
                         if (!z.cv_memb_list_) {
                             cml = new CvMembList{i};
                             cml->next = nil;
                             assert(cml->ml.size() == 1);
-                            cml->ml[0].nodecount = 0;
+                            cml->ml[0]._nodecount = 0;
                             z.cv_memb_list_ = cml;
                             last[cellnum[inode]] = cml;
                         }
                         if (last[cellnum[inode]]->index == i) {
                             assert(last[cellnum[inode]]->ml.size() == 1);
-                            ++last[cellnum[inode]]->ml[0].nodecount;
+                            ++last[cellnum[inode]]->ml[0]._nodecount;
                         } else {
                             cml = new CvMembList{i};
                             last[cellnum[inode]]->next = cml;
                             cml->next = nil;
                             last[cellnum[inode]] = cml;
                             assert(cml->ml.size() == 1);
-                            cml->ml[0].nodecount = 1;
+                            cml->ml[0]._nodecount = 1;
                         }
                     }
                 }
@@ -1798,7 +1798,7 @@ bool NetCvode::init_global() {
                 for (cml = cvml[i]; cml; cml = cml->next) {
                     // non-contiguous mode, so we're going to create a lot of 1-element Memb_list
                     // inside cml->ml
-                    cml->ml.reserve(cml->ml[0].nodecount);
+                    cml->ml.reserve(cml->ml[0]._nodecount);
                     // remove the single entry from contiguous mode
                     cml->ml.clear();
                 }
@@ -1809,28 +1809,28 @@ bool NetCvode::init_global() {
                 i = tml->index;
                 Memb_func* mf = memb_func + i;
                 Memb_list* ml = tml->ml;
-                if (ml->nodecount &&
+                if (ml->_nodecount &&
                     (mf->current || mf->ode_count || mf->ode_matsol || mf->ode_spec || mf->state ||
                      i == CAP || ba_candidate.count(i) == 1)) {
-                    for (int j = 0; j < ml->nodecount; ++j) {
-                        int icell = cellnum[ml->nodelist[j]->v_node_index];
+                    for (int j = 0; j < ml->_nodecount; ++j) {
+                        int icell = cellnum[ml->_nodelist[j]->v_node_index];
                         if (cvml[icell]->index != i) {
                             cvml[icell] = cvml[icell]->next;
                             assert(cvml[icell] && cvml[icell]->index);
                         }
                         cml = cvml[icell];
                         auto& newml = cml->ml.emplace_back(cml->index /* mechanism type */);
-                        newml.nodecount = 1;
-                        newml.nodelist = new Node*[1];
-                        newml.nodelist[0] = ml->nodelist[j];
+                        newml._nodecount = 1;
+                        newml._nodelist = new Node*[1];
+                        newml._nodelist[0] = ml->_nodelist[j];
 #if CACHEVEC
-                        newml.nodeindices = new int[1]{ml->nodeindices[j]};
+                        newml._nodeindices = new int[1]{ml->_nodeindices[j]};
 #endif
                         if (mf->hoc_mech) {
                             newml.prop = new Prop* [1] { ml->prop[j] };
                         } else {
                             newml.set_storage_offset(ml->get_storage_offset() + j);
-                            newml.pdata = new Datum* [1] { ml->pdata[j] };
+                            newml._pdata = new Datum* [1] { ml->_pdata[j] };
                         }
                         newml._thread = ml->_thread;
                     }
@@ -1848,11 +1848,11 @@ bool NetCvode::init_global() {
                 if (mf->is_point) {
                     Memb_list* ml = tml->ml;
                     int j;
-                    for (j = 0; j < ml->nodecount; ++j) {
-                        auto& datum = mf->hoc_mech ? ml->prop[j]->dparam[1] : ml->pdata[j][1];
+                    for (j = 0; j < ml->_nodecount; ++j) {
+                        auto& datum = mf->hoc_mech ? ml->prop[j]->dparam[1] : ml->_pdata[j][1];
                         auto* pp = datum.get<Point_process*>();
                         if (nrn_is_artificial_[i] == 0) {
-                            int inode = ml->nodelist[j]->v_node_index;
+                            int inode = ml->_nodelist[j]->v_node_index;
                             pp->nvi_ = d.lcv_ + cellnum[inode];
                         } else {
                             pp->nvi_ = nil;
@@ -4110,10 +4110,10 @@ void NetCvode::fornetcon_prepare() {
         t2i[type] = index;
         if (nrn_is_artificial_[type]) {
             auto* const m = &memb_list[type];
-            for (j = 0; j < m->nodecount; ++j) {
+            for (j = 0; j < m->_nodecount; ++j) {
                 // Save ForNetConsInfo* as void* to avoid needing to expose the
                 // definition of ForNetConsInfo to translated MOD file code
-                void** v = &(m->pdata[j][index].literal_value<void*>());
+                void** v = &(m->_pdata[j][index].literal_value<void*>());
                 _nrn_free_fornetcon(v);
                 ForNetConsInfo* fnc = new ForNetConsInfo;
                 *v = fnc;
@@ -4123,8 +4123,8 @@ void NetCvode::fornetcon_prepare() {
         } else {
             FOR_THREADS(nt) for (tml = nt->tml; tml; tml = tml->next) if (tml->index == type) {
                 Memb_list* m = tml->ml;
-                for (j = 0; j < m->nodecount; ++j) {
-                    void** v = &(m->pdata[j][index].literal_value<void*>());
+                for (j = 0; j < m->_nodecount; ++j) {
+                    void** v = &(m->_pdata[j][index].literal_value<void*>());
                     _nrn_free_fornetcon(v);
                     ForNetConsInfo* fnc = new ForNetConsInfo;
                     *v = fnc;
@@ -4158,8 +4158,8 @@ void NetCvode::fornetcon_prepare() {
         int type = nrn_fornetcon_type_[i];
         if (nrn_is_artificial_[type]) {
             auto* const m = &memb_list[type];
-            for (j = 0; j < m->nodecount; ++j) {
-                auto* fnc = static_cast<ForNetConsInfo*>(m->pdata[j][index].get<void*>());
+            for (j = 0; j < m->_nodecount; ++j) {
+                auto* fnc = static_cast<ForNetConsInfo*>(m->_pdata[j][index].get<void*>());
                 if (fnc->size > 0) {
                     fnc->argslist = new double*[fnc->size];
                     fnc->size = 0;
@@ -4170,8 +4170,8 @@ void NetCvode::fornetcon_prepare() {
             for (tml = nt->tml; tml; tml = tml->next)
                 if (tml->index == nrn_fornetcon_type_[i]) {
                     Memb_list* m = tml->ml;
-                    for (j = 0; j < m->nodecount; ++j) {
-                        auto* fnc = static_cast<ForNetConsInfo*>(m->pdata[j][index].get<void*>());
+                    for (j = 0; j < m->_nodecount; ++j) {
+                        auto* fnc = static_cast<ForNetConsInfo*>(m->_pdata[j][index].get<void*>());
                         if (fnc->size > 0) {
                             fnc->argslist = new double*[fnc->size];
                             fnc->size = 0;

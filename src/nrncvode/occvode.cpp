@@ -144,7 +144,7 @@ void Cvode::init_eqn() {
         zneq_cap_v = 0;
         if (z.cmlcap_) {
             for (auto& ml: z.cmlcap_->ml) {
-                zneq_cap_v += ml.nodecount;
+                zneq_cap_v += ml._nodecount;
             }
         }
         zneq = zneq_cap_v;
@@ -154,7 +154,7 @@ void Cvode::init_eqn() {
             if (auto const ode_count = memb_func[cml->index].ode_count; ode_count) {
                 auto const count = ode_count(cml->index);
                 for (auto& ml: cml->ml) {
-                    zneq += ml.nodecount * count;
+                    zneq += ml._nodecount * count;
                 }
             }
         }
@@ -194,8 +194,8 @@ printf("%d Cvode::init_eqn id=%d neq_v_=%d #nonvint=%d #nonvint_extra=%d nvsize=
         if (z.cmlcap_) {
             for (auto& ml: z.cmlcap_->ml) {
                 // support `1 x n` and `n x 1` but not `n x m`
-                assert(z.cmlcap_->ml.size() == 1 || ml.nodecount == 1);
-                zneq_cap_v += ml.nodecount;
+                assert(z.cmlcap_->ml.size() == 1 || ml._nodecount == 1);
+                zneq_cap_v += ml._nodecount;
             }
         }
         zneq = z.nvsize_;
@@ -226,8 +226,8 @@ printf("%d Cvode::init_eqn id=%d neq_v_=%d #nonvint=%d #nonvint_extra=%d nvsize=
             NODERHS(z.v_node_[i]) = 1.;
         }
         for (i = 0; i < zneq_cap_v; ++i) {
-            auto* const node = z.cmlcap_->ml.size() == 1 ? z.cmlcap_->ml[0].nodelist[i]
-                                                         : z.cmlcap_->ml[i].nodelist[0];
+            auto* const node = z.cmlcap_->ml.size() == 1 ? z.cmlcap_->ml[0]._nodelist[i]
+                                                         : z.cmlcap_->ml[i]._nodelist[0];
             z.pv_[i] = node->v_handle();
             z.pvdot_[i] = &(NODERHS(node));
             *z.pvdot_[i] = 0.;  // only ones = 1 are no_cap
@@ -274,13 +274,13 @@ printf("%d Cvode::init_eqn id=%d neq_v_=%d #nonvint=%d #nonvint_extra=%d nvsize=
                     // if it does, hocmech.cpp must follow all the
                     // nrn_ode_..._t prototypes to avoid segfault
                     // with Apple M1.
-                    for (j = 0; j < ml.nodecount; ++j) {
+                    for (j = 0; j < ml._nodecount; ++j) {
                         mf->ode_map(ieq,
                                     pv_raw_ptrs.data() + ieq,
                                     z.pvdot_ + ieq,
                                     &ml,
                                     j,
-                                    ml.pdata[j],
+                                    ml._pdata[j],
                                     atv + ieq,
                                     cml->index);
                         ieq += n;
@@ -312,8 +312,8 @@ void Cvode::new_no_cap_memb(CvodeThreadData& z, NrnThread* _nt) {
         // count how many at no cap nodes
         int n{};
         for (auto& ml: cml->ml) {
-            for (auto i = 0; i < ml.nodecount; ++i) {
-                if (NODERHS(ml.nodelist[i]) > .5) {
+            for (auto i = 0; i < ml._nodecount; ++i) {
+                if (NODERHS(ml._nodelist[i]) > .5) {
                     ++n;
                 }
             }
@@ -336,21 +336,21 @@ void Cvode::new_no_cap_memb(CvodeThreadData& z, NrnThread* _nt) {
         ncm->ml.reserve(n);
         ncm->ml.clear();
         for (auto& ml: cml->ml) {
-            for (auto i = 0; i < ml.nodecount; ++i) {
-                if (NODERHS(ml.nodelist[i]) > .5) {
+            for (auto i = 0; i < ml._nodecount; ++i) {
+                if (NODERHS(ml._nodelist[i]) > .5) {
                     auto& newml = ncm->ml.emplace_back(cml->index /* mechanism type */);
-                    newml.nodecount = 1;
-                    newml.nodelist = new Node* [1] { ml.nodelist[i] };
-                    assert(newml.nodelist[0] == ml.nodelist[i]);
+                    newml._nodecount = 1;
+                    newml._nodelist = new Node* [1] { ml._nodelist[i] };
+                    assert(newml._nodelist[0] == ml._nodelist[i]);
 #if CACHEVEC
-                    newml.nodeindices = new int[1]{ml.nodeindices[i]};
+                    newml._nodeindices = new int[1]{ml._nodeindices[i]};
 #endif
                     if (mf->hoc_mech) {
                         newml.prop = new Prop* [1] { ml.prop[i] };
                     } else {
                         // Danger: this is not stable w.r.t. permutation
                         newml.set_storage_offset(ml.get_storage_offset() + i);
-                        newml.pdata = new Datum* [1] { ml.pdata[i] };
+                        newml._pdata = new Datum* [1] { ml._pdata[i] };
                     }
                     newml._thread = ml._thread;
                 }
@@ -389,7 +389,7 @@ void Cvode::daspk_init_eqn() {
         nrn_ode_count_t s = memb_func[cml->index].ode_count;
         if (s) {
             assert(cml->ml.size() == 1);
-            zneq += cml->ml[0].nodecount * (*s)(cml->index);
+            zneq += cml->ml[0]._nodecount * (*s)(cml->index);
         }
     }
     z.nonvint_extra_offset_ = zneq;
@@ -459,13 +459,13 @@ void Cvode::daspk_init_eqn() {
             assert(cml->ml.size() == 1);
             Memb_list* ml = &cml->ml[0];
             nrn_ode_map_t s = mf->ode_map;
-            for (j = 0; j < ml->nodecount; ++j) {
+            for (j = 0; j < ml->_nodecount; ++j) {
                 (*s)(ieq,
                      pv_raw_ptrs.data() + ieq,
                      z.pvdot_ + ieq,
                      ml,
                      j,
-                     ml->pdata[j],
+                     ml->_pdata[j],
                      atv + ieq,
                      cml->index);
                 ieq += n;
@@ -836,8 +836,8 @@ void Cvode::before_after(BAMechList* baml, NrnThread* nt) {
     for (auto* ba = baml; ba; ba = ba->next) {
         nrn_bamech_t f = ba->bam->f;
         for (auto* const ml: ba->ml) {
-            for (int i = 0; i < ml->nodecount; ++i) {
-                f(ml->nodelist[i], ml->pdata[i], ml->_thread, nt, ml, i);
+            for (int i = 0; i < ml->_nodecount; ++i) {
+                f(ml->_nodelist[i], ml->_pdata[i], ml->_thread, nt, ml, i);
             }
         }
     }

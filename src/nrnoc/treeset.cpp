@@ -1621,17 +1621,17 @@ void v_setup_vectors(void) {
 
     for (i = 0; i < n_memb_func; ++i)
         if (nrn_is_artificial_[i] && memb_func[i].has_initialize()) {
-            if (memb_list[i].nodecount) {
-                memb_list[i].nodecount = 0;
-                free(memb_list[i].nodelist);
+            if (memb_list[i]._nodecount) {
+                memb_list[i]._nodecount = 0;
+                free(memb_list[i]._nodelist);
 #if CACHEVEC
-                free((void*) memb_list[i].nodeindices);
+                free((void*) memb_list[i]._nodeindices);
 #endif /* CACHEVEC */
                 if (memb_func[i].hoc_mech) {
                     free(memb_list[i].prop);
                 } else {
                     // free(memb_list[i]._data);
-                    free(memb_list[i].pdata);
+                    free(memb_list[i]._pdata);
                 }
             }
         }
@@ -1641,7 +1641,7 @@ void v_setup_vectors(void) {
     for (i = 0; i < n_memb_func; ++i)
         if (nrn_is_artificial_[i] && memb_func[i].has_initialize()) {
             cTemplate* tmp = nrn_pnt_template_[i];
-            memb_list[i].nodecount = tmp->count;
+            memb_list[i]._nodecount = tmp->count;
         }
 #endif
 
@@ -1649,19 +1649,20 @@ void v_setup_vectors(void) {
 
     for (i = 0; i < n_memb_func; ++i)
         if (nrn_is_artificial_[i] && memb_func[i].has_initialize()) {
-            if (memb_list[i].nodecount) {
-                memb_list[i].nodelist = (Node**) emalloc(memb_list[i].nodecount * sizeof(Node*));
+            if (memb_list[i]._nodecount) {
+                memb_list[i]._nodelist = (Node**) emalloc(memb_list[i]._nodecount * sizeof(Node*));
 #if CACHEVEC
-                memb_list[i].nodeindices = (int*) emalloc(memb_list[i].nodecount * sizeof(int));
+                memb_list[i]._nodeindices = (int*) emalloc(memb_list[i]._nodecount * sizeof(int));
 #endif /* CACHEVEC */
                 if (memb_func[i].hoc_mech) {
-                    memb_list[i].prop = (Prop**) emalloc(memb_list[i].nodecount * sizeof(Prop*));
+                    memb_list[i].prop = (Prop**) emalloc(memb_list[i]._nodecount * sizeof(Prop*));
                 } else {
-                    // memb_list[i]._data = (double**) emalloc(memb_list[i].nodecount *
+                    // memb_list[i]._data = (double**) emalloc(memb_list[i]._nodecount *
                     //                                         sizeof(double*));
-                    memb_list[i].pdata = (Datum**) emalloc(memb_list[i].nodecount * sizeof(Datum*));
+                    memb_list[i]._pdata = (Datum**) emalloc(memb_list[i]._nodecount *
+                                                            sizeof(Datum*));
                 }
-                memb_list[i].nodecount = 0; /* counted again below */
+                memb_list[i]._nodecount = 0; /* counted again below */
             }
         }
 
@@ -1709,7 +1710,7 @@ void v_setup_vectors(void) {
         if (nrn_is_artificial_[i] && memb_func[i].has_initialize()) {
             hoc_Item* q;
             cTemplate* tmp = nrn_pnt_template_[i];
-            memb_list[i].nodecount = tmp->count;
+            memb_list[i]._nodecount = tmp->count;
             int nti{}, j{};
             hoc_List* list = tmp->olist;
             std::vector<std::size_t> thread_counts(nrn_nthread);
@@ -1717,7 +1718,7 @@ void v_setup_vectors(void) {
                 Object* obj = OBJ(q);
                 auto* pnt = static_cast<Point_process*>(obj->u.this_pointer);
                 p = pnt->prop;
-                memb_list[i].nodelist[j] = nullptr;
+                memb_list[i]._nodelist[j] = nullptr;
                 /* for now, round robin all the artificial cells */
                 /* but put the non-threadsafe ones in thread 0 */
                 /*
@@ -1737,7 +1738,7 @@ void v_setup_vectors(void) {
                 // pnt->_i_instance = j;
                 ++j;
             }
-            assert(j == memb_list[i].nodecount);
+            assert(j == memb_list[i]._nodecount);
             // The following is a transition measure while data are SOA-backed
             // using the new neuron::container::soa scheme but pdata are not.
             // data get permuted so that artificial cells are blocked according
@@ -1761,7 +1762,7 @@ void v_setup_vectors(void) {
             ITERATE(q, list) {
                 auto* const pnt = static_cast<Point_process*>(OBJ(q)->u.this_pointer);
                 auto const tid = static_cast<NrnThread*>(pnt->_vnt)->id;
-                memb_list[i].pdata[thread_offsets[tid] + thread_counts[tid]++] = pnt->prop->dparam;
+                memb_list[i]._pdata[thread_offsets[tid] + thread_counts[tid]++] = pnt->prop->dparam;
             }
         }
     }
@@ -1813,9 +1814,9 @@ void node_data_structure(void) {
     /*	P "node lists for the membrane mechanisms\n");*/
     for (i = 2; i < n_memb_func; ++i) {
         /*		P "count, node list for mechanism %s\n", memb_func[i].sym->name);*/
-        Pd(memb_list[i].nodecount);
-        for (j = 0; j < memb_list[i].nodecount; ++j) {
-            Pd(memb_list[i].nodelist[j]->v_node_index);
+        Pd(memb_list[i]._nodecount);
+        for (j = 0; j < memb_list[i]._nodecount; ++j) {
+            Pd(memb_list[i]._nodelist[j]->v_node_index);
         }
     }
 }
@@ -1833,13 +1834,13 @@ void node_data_values(void) {
         Prop* prop;
         int cnt;
         double* pd;
-        if (memb_list[i].nodecount) {
+        if (memb_list[i]._nodecount) {
             assert(!memb_func[i].hoc_mech);
-            prop = nrn_mechanism(i, memb_list[i].nodelist[0]);
+            prop = nrn_mechanism(i, memb_list[i]._nodelist[0]);
             cnt = prop->param_size;
             Pd(cnt);
         }
-        for (j = 0; j < memb_list[i].nodecount; ++j) {
+        for (j = 0; j < memb_list[i]._nodecount; ++j) {
             pd = memb_list[i]._data[j];
             for (k = 0; k < cnt; ++k) {
                 Pg(pd[k]);
@@ -2019,7 +2020,7 @@ printf("nrn_matrix_node_alloc use_sparse13=%d cvode_active_=%d nrn_use_daspk_=%d
         neqn = nt->end + nrndae_extra_eqn_count();
         extn = 0;
         if (nt->_ecell_memb_list) {
-            extn = nt->_ecell_memb_list->nodecount * nlayer;
+            extn = nt->_ecell_memb_list->_nodecount * nlayer;
         }
         /*printf(" %d extracellular nodes\n", extn);*/
         neqn += extn;
@@ -2073,7 +2074,7 @@ printf("nrn_matrix_node_alloc use_sparse13=%d cvode_active_=%d nrn_use_daspk_=%d
     } else {
         FOR_THREADS(nt) {
             assert(nrndae_extra_eqn_count() == 0);
-            assert(!nt->_ecell_memb_list || nt->_ecell_memb_list->nodecount == 0);
+            assert(!nt->_ecell_memb_list || nt->_ecell_memb_list->_nodecount == 0);
             nt->_actual_d = (double*) ecalloc(nt->end, sizeof(double));
             nt->_actual_rhs = (double*) ecalloc(nt->end, sizeof(double));
             for (i = 0; i < nt->end; ++i) {
@@ -2181,12 +2182,12 @@ static neuron::container::Mechanism::storage::sorted_token_type nrn_sort_mech_da
                     auto const current_global_row = p->id().current_row();
                     mech_data_permutation.at(current_global_row) = global_i++;
                     // Checks
-                    assert(ml->nodelist[nt_mech_count] == nd);
-                    assert(ml->nodeindices[nt_mech_count] == nd->v_node_index);
+                    assert(ml->_nodelist[nt_mech_count] == nd);
+                    assert(ml->_nodeindices[nt_mech_count] == nd->v_node_index);
                     ++nt_mech_count;
                 }
             }
-            assert(!ml || ml->nodecount == nt_mech_count);
+            assert(!ml || ml->_nodecount == nt_mech_count);
             // Look for any artificial cells attached to this NrnThread
             if (nrn_is_artificial_[type]) {
                 cTemplate* tmp = nrn_pnt_template_[type];

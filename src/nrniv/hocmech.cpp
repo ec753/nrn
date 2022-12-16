@@ -166,17 +166,17 @@ static void call(Symbol* s, Node* nd, Prop* p) {
 
 static void initial(void* nt, Memb_list* ml, int type) {
     HocMech* hm = (HocMech*) memb_func[type].hoc_mech;
-    int i, cnt = ml->nodecount;
+    int i, cnt = ml->_nodecount;
     for (i = 0; i < cnt; ++i) {
-        call(hm->initial, ml->nodelist[i], ml->prop[i]);
+        call(hm->initial, ml->_nodelist[i], ml->prop[i]);
     }
 }
 
 static void after_step(void* nt, Memb_list* ml, int type) {
     HocMech* hm = (HocMech*) memb_func[type].hoc_mech;
-    int i, cnt = ml->nodecount;
+    int i, cnt = ml->_nodecount;
     for (i = 0; i < cnt; ++i) {
-        call(hm->after_step, ml->nodelist[i], ml->prop[i]);
+        call(hm->after_step, ml->_nodelist[i], ml->prop[i]);
     }
 }
 

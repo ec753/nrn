@@ -24,8 +24,8 @@ static void pr_memb(int type,
     int header_printed = 0;
     int size = nrn_prop_param_size_[type];
     int receives_events = pnt_receive[type] ? 1 : 0;
-    for (int i = 0; i < ml->nodecount; ++i) {
-        int inode = ml->nodeindices[i];
+    for (int i = 0; i < ml->_nodecount; ++i) {
+        int inode = ml->_nodeindices[i];
         if (cellnodes[inode] >= 0) {
             if (!header_printed) {
                 header_printed = 1;
@@ -33,7 +33,7 @@ static void pr_memb(int type,
             }
             if (receives_events) {
                 fprintf(f, "%d nri %lu\n", cellnodes[inode], pnt2index.size());
-                auto* pp = ml->pdata[i][1].get<Point_process*>();
+                auto* pp = ml->_pdata[i][1].get<Point_process*>();
                 pnt2index.emplace(pp, pnt2index.size());
             }
             for (int j = 0; j < size; ++j) {

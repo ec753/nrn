@@ -63,8 +63,8 @@ class CellGroup {
         for (auto& th: deferred_type2artml_) {
             for (auto& p: th) {
                 Memb_list* ml = p.second;
-                if (ml->pdata) {
-                    delete[] ml->pdata;
+                if (ml->_pdata) {
+                    delete[] ml->_pdata;
                 }
                 delete ml;
             }

@@ -314,8 +314,8 @@ void Imp::setmat1() {
     for (int i = 0; i < n; ++i) {
         NODERHS(_nt->_v_node[i]) = 0;
     }
-    for (int i = 0; i < mlc->nodecount; ++i) {
-        NODERHS(mlc->nodelist[i]) = mlc->data(i, 0);
+    for (int i = 0; i < mlc->_nodecount; ++i) {
+        NODERHS(mlc->_nodelist[i]) = mlc->data(i, 0);
     }
 }
 

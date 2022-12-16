@@ -1839,7 +1839,7 @@ int nrn_instance_count(int mechtype) {
     if (v_structure_change) {
         v_setup_vectors();
     }
-    return memb_list[mechtype].nodecount;
+    return memb_list[mechtype]._nodecount;
 }
 
 #if EXTRACELLULAR

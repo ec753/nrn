@@ -74,7 +74,7 @@ for a PreSyn instance.)
 Artificial cells without gids connect only to cells in the same thread.
 No POINTER to data outside of NrnThread.
 No POINTER to data in ARTIFICIAL_CELL (that data is not cache_efficient)
-nt->tml->pdata is not cache_efficient
+nt->tml->_pdata is not cache_efficient
 */
 // See coreneuron/nrniv/nrn_setup.cpp for a description of
 // the file format written by this file.

@@ -209,7 +209,7 @@ void write_nrnthread(const char* path, NrnThread& nt, CellGroup& cg) {
         std::vector<int> pointer2type;
         nrnthread_dat2_mech(nt.id, i, dsz_inst, nodeindices, data, pdata, pointer2type);
         Memb_list* ml = mla[i].second;
-        int n = ml->nodecount;
+        int n = ml->_nodecount;
         int sz = nrn_prop_param_size_[type];
         if (nodeindices) {
             writeint(nodeindices, n);

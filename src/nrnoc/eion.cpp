@@ -476,8 +476,8 @@ void ion_style(void) {
             int count;
             Datum** ppd;
             v_setup_vectors();
-            count = memb_list[s->subtype].nodecount;
-            ppd = memb_list[s->subtype].pdata;
+            count = memb_list[s->subtype]._nodecount;
+            ppd = memb_list[s->subtype]._pdata;
             for (i=0; i < count; ++i) {
                 iontype = (iontype&(0200+0400)) + istyle;
             }
@@ -555,9 +555,8 @@ void nrn_promote(Prop* p, int conc, int rev) {
 
 /* Must be called prior to any channels which update the currents */
 static void ion_cur(NrnThread* nt, Memb_list* ml, int type) {
-    int count = ml->nodecount;
-    Node** vnode = ml->nodelist;
-    Datum** ppd = ml->pdata;
+    auto const count = ml->_nodecount;
+    Datum** ppd = ml->_pdata;  // used in iontype below
     /*printf("ion_cur %s\n", memb_func[type].sym->name);*/
     for (int i = 0; i < count; ++i) {
         ml->data(i, dcurdv_index) = 0.0;
@@ -573,18 +572,16 @@ static void ion_cur(NrnThread* nt, Memb_list* ml, int type) {
     concentrations based on their own states
 */
 static void ion_init(NrnThread* nt, Memb_list* ml, int type) {
-    int count = ml->nodecount;
-    Node** vnode = ml->nodelist;
-    Datum** ppd = ml->pdata;
-    int i;
+    int count = ml->_nodecount;
+    Datum** ppd = ml->_pdata;
     /*printf("ion_init %s\n", memb_func[type].sym->name);*/
-    for (i = 0; i < count; ++i) {
+    for (int i = 0; i < count; ++i) {
         if (iontype & 04) {
             ml->data(i, conci_index) = conci0;
             ml->data(i, conco_index) = conco0;
         }
     }
-    for (i = 0; i < count; ++i) {
+    for (int i = 0; i < count; ++i) {
         if (iontype & 040) {
             ml->data(i, erev_index) =
                 nrn_nernst(ml->data(i, conci_index), ml->data(i, conco_index), charge);
@@ -628,9 +625,9 @@ void second_order_cur(NrnThread* nt) {
         for (tml = nt->tml; tml; tml = tml->next)
             if (memb_func[tml->index].alloc == ion_alloc) {
                 ml = tml->ml;
-                i2 = ml->nodecount;
+                i2 = ml->_nodecount;
                 for (i = 0; i < i2; ++i) {
-                    ml->data(i, c) += ml->data(i, dc) * (NODERHS(ml->nodelist[i]));
+                    ml->data(i, c) += ml->data(i, dc) * (NODERHS(ml->_nodelist[i]));
                 }
             }
     }

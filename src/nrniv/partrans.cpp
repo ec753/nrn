@@ -974,7 +974,7 @@ void pargap_jacobi_setup(int mode) {
             // are all the instances in use
             size_t ninst = 0;
             for (int k = 0; k < imped_current_type_count_; ++k) {
-                ninst += imped_current_ml_[k]->nodecount;
+                ninst += imped_current_ml_[k]->_nodecount;
             }
             if (ninst != targets_.size()) {
                 hoc_execerr_ext(

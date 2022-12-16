@@ -100,7 +100,7 @@ void CellGroup::mk_cellgroups(neuron::model_sorted_token const& cache_token, Cel
             Memb_list* ml = mla[j].second;
             cgs[i].type2ml[type] = ml;
             if (nrn_has_net_event(type)) {
-                npre += ml->nodecount;
+                npre += ml->_nodecount;
             }
         }
         cgs[i].n_presyn = npre;
@@ -140,8 +140,8 @@ void CellGroup::mk_cellgroups(neuron::model_sorted_token const& cache_token, Cel
             int type = mla[j].first;
             Memb_list* ml = mla[j].second;
             if (nrn_has_net_event(type)) {
-                for (int instance = 0; instance < ml->nodecount; ++instance) {
-                    auto* const pnt = ml->pdata[instance][1].get<Point_process*>();
+                for (int instance = 0; instance < ml->_nodecount; ++instance) {
+                    auto* const pnt = ml->_pdata[instance][1].get<Point_process*>();
                     auto* const ps = static_cast<PreSyn*>(pnt->presyn_);
                     auto const other_thread = static_cast<NrnThread*>(pnt->_vnt)->id;
                     assert(other_thread == i);
@@ -170,7 +170,7 @@ void CellGroup::mk_cellgroups(neuron::model_sorted_token const& cache_token, Cel
                         oss << "maximum of ~" << std::numeric_limits<int>::max() / 1000
                             << " artificial cells of a given type can be created per NrnThread, "
                                "this model has "
-                            << ml->nodecount << " instances of " << memb_func[type].sym->name
+                            << ml->_nodecount << " instances of " << memb_func[type].sym->name
                             << " (cannot store cgs[" << i << "].output_vindex[" << npre
                             << "]=" << agid << ')';
                         hoc_execerror("integer overflow", oss.str().c_str());
@@ -212,7 +212,7 @@ void CellGroup::datumtransform(CellGroup* cgs) {
         for (size_t j = 0; j < mla.size(); ++j) {
             Memb_list* ml = mla[j].second;
             ++cg.n_mech;
-            if (ml->pdata[0]) {
+            if (ml->_pdata[0]) {
                 ++cg.ntype;
             }
         }
@@ -226,7 +226,7 @@ void CellGroup::datumtransform(CellGroup* cgs) {
             if (sz) {
                 DatumIndices& di = cg.datumindices[i++];
                 di.type = type;
-                int n = ml->nodecount * sz;
+                int n = ml->_nodecount * sz;
                 di.ion_type = new int[n];
                 di.ion_index = new int[n];
                 // fill the indices.
@@ -247,7 +247,7 @@ void CellGroup::datumtransform(CellGroup* cgs) {
 void CellGroup::datumindex_fill(int ith, CellGroup& cg, DatumIndices& di, Memb_list* ml) {
     NrnThread& nt = nrn_threads[ith];
     int nnode = nt.end;
-    int mcnt = ml->nodecount;
+    int mcnt = ml->_nodecount;
     int dsize = bbcore_dparam_size[di.type];
     if (dsize == 0) {
         return;
@@ -266,10 +266,10 @@ void CellGroup::datumindex_fill(int ith, CellGroup& cg, DatumIndices& di, Memb_l
     int isart = nrn_is_artificial_[di.type];
     for (int i = 0; i < mcnt; ++i) {
         // Prop* datum instance arrays are not in cache efficient order
-        // ie. ml->pdata[i] are not laid out end to end in memory.
+        // ie. ml->_pdata[i] are not laid out end to end in memory.
         // Also, ml->_data for artificial cells is not in cache efficient order
         // but in the artcell case there are no pointers to doubles
-        Datum* dparam = ml->pdata[i];
+        Datum* dparam = ml->_pdata[i];
         int offset = i * dsize;
         int vdata_offset = i * vdata_size;
         for (int j = 0; j < dsize; ++j) {
@@ -319,7 +319,7 @@ void CellGroup::datumindex_fill(int ith, CellGroup& cg, DatumIndices& di, Memb_l
                 // is not in the tml_with_art.
                 // Need to determine this node and then simple to search its
                 // mechanism list for MORPHOLOGY and then know the diam.
-                Node* nd = ml->nodelist[i];
+                Node* nd = ml->_nodelist[i];
                 neuron::container::data_handle<double> pdiam{};
                 for (Prop* p = nd->prop; p; p = p->next) {
                     if (p->_type == MORPHOLOGY) {
@@ -328,7 +328,7 @@ void CellGroup::datumindex_fill(int ith, CellGroup& cg, DatumIndices& di, Memb_l
                     }
                 }
                 assert(static_cast<neuron::container::data_handle<double>>(dparam[j]) == pdiam);
-                eindex = ml->nodeindices[i];
+                eindex = ml->_nodeindices[i];
             } else if (dmap[j] == -5) {  // POINTER
                 // must be a pointer into nt->_data. Handling is similar to eion so
                 // give proper index into the type.
@@ -473,7 +473,7 @@ void CellGroup::mk_cgs_netcon_info(neuron::model_sorted_token const& cache_token
 // The only issue is that data for artificial cells is not in cache order
 // (after all there is no BREAKPOINT or SOLVE block for ARTIFICIAL_CELLs)
 // so we assume there will be no POINTER usage into that data.
-// Also, note that ml.nodecount for artificial cell does not refer to
+// Also, note that ml._nodecount for artificial cell does not refer to
 // a list of voltage nodes but just to the count of instances.
 void CellGroup::mk_tml_with_art(neuron::model_sorted_token const& cache_token, CellGroup* cgs) {
     // copy NrnThread tml list and append ARTIFICIAL cell types
@@ -496,7 +496,7 @@ void CellGroup::mk_tml_with_art(neuron::model_sorted_token const& cache_token, C
     }
     int* acnt = new int[nrn_nthread];
     for (int i = 0; i < n_memb_func; ++i) {
-        if (nrn_is_artificial_[i] && memb_list[i].nodecount) {
+        if (nrn_is_artificial_[i] && memb_list[i]._nodecount) {
             // skip PatternStim if file mode transfer.
             if (!corenrn_direct && strcmp(memb_func[i].sym->name, "PatternStim") == 0) {
                 continue;
@@ -509,8 +509,8 @@ void CellGroup::mk_tml_with_art(neuron::model_sorted_token const& cache_token, C
             for (int id = 0; id < nrn_nthread; ++id) {
                 acnt[id] = 0;
             }
-            for (int j = 0; j < memb_list[i].nodecount; ++j) {
-                auto* pnt = memb_list[i].pdata[j][1].get<Point_process*>();
+            for (int j = 0; j < memb_list[i]._nodecount; ++j) {
+                auto* pnt = memb_list[i]._pdata[j][1].get<Point_process*>();
                 int id = ((NrnThread*) pnt->_vnt)->id;
                 ++acnt[id];
             }
@@ -521,25 +521,25 @@ void CellGroup::mk_tml_with_art(neuron::model_sorted_token const& cache_token, C
                     MlWithArt& mla = cgs[id].mlwithart;
                     ml = new Memb_list{i};
                     mla.push_back(MlWithArtItem(i, ml));  // need to delete ml when mla destroyed.
-                    ml->nodecount = acnt[id];
-                    ml->nodelist = NULL;
-                    ml->nodeindices = NULL;
+                    ml->_nodecount = acnt[id];
+                    ml->_nodelist = NULL;
+                    ml->_nodeindices = NULL;
                     ml->prop = NULL;
                     ml->_thread = NULL;
                     // ml->_data = new double*[acnt[id]];
-                    ml->pdata = new Datum*[acnt[id]];
+                    ml->_pdata = new Datum*[acnt[id]];
                 }
             }
             // fill data and pdata pointers
             for (int id = 0; id < nrn_nthread; ++id) {
                 acnt[id] = 0;
             }
-            for (int j = 0; j < memb_list[i].nodecount; ++j) {
-                auto* pnt = memb_list[i].pdata[j][1].get<Point_process*>();
+            for (int j = 0; j < memb_list[i]._nodecount; ++j) {
+                auto* pnt = memb_list[i]._pdata[j][1].get<Point_process*>();
                 int id = ((NrnThread*) pnt->_vnt)->id;
                 Memb_list* ml = cgs[id].mlwithart.back().second;
                 ml->set_storage_offset(cache_token.thread_cache(id).mechanism_offset.at(i));
-                ml->pdata[acnt[id]] = memb_list[i].pdata[j];
+                ml->_pdata[acnt[id]] = memb_list[i]._pdata[j];
                 ++acnt[id];
             }
         }
@@ -567,18 +567,18 @@ size_t CellGroup::get_mla_rankbytes(CellGroup* cellgroups_) {
             int type = mla[i].first;
             Memb_list* ml = mla[i].second;
             ++mechcnt;
-            mechcnt_instances += ml->nodecount;
-            npnt += (memb_func[type].is_point ? ml->nodecount : 0);
+            mechcnt_instances += ml->_nodecount;
+            npnt += (memb_func[type].is_point ? ml->_nodecount : 0);
             int psize = nrn_prop_param_size_[type];
             int dpsize = nrn_prop_dparam_size_[type];  // includes cvodeieq if present
             // printf("%d %s ispnt %d  cnt %d  psize %d  dpsize %d\n",tml->index,
-            // memb_func[type].sym->name, memb_func[type].is_point, ml->nodecount, psize, dpsize);
+            // memb_func[type].sym->name, memb_func[type].is_point, ml->_nodecount, psize, dpsize);
             // nodeindices, data, pdata + pnt with prop
             int notart = nrn_is_artificial_[type] ? 0 : 1;
             if (nrn_is_artificial_[type]) {
-                nart += ml->nodecount;
+                nart += ml->_nodecount;
             }
-            nbytes = ml->nodecount *
+            nbytes = ml->_nodecount *
                      (notart * sizeof(int) + 1 * sizeof(double*) + 1 * sizeof(Datum*) +
                       psize * sizeof(double) + dpsize * sizeof(Datum));
             threadbytes += nbytes;
@@ -610,7 +610,7 @@ void CellGroup::clean_art(CellGroup* cgs) {
                     deferred_type2artml_[ith][type] = ml;
                 } else {
                     // delete[] ml->_data;
-                    delete[] ml->pdata;
+                    delete[] ml->_pdata;
                     delete ml;
                 }
             }

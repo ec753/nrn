@@ -22,16 +22,16 @@ static constexpr auto g_index = 0;
 static constexpr auto e_index = 1;
 
 static void pas_cur(NrnThread* nt, Memb_list* ml, int type) {
-    int count = ml->nodecount;
-    Node** vnode = ml->nodelist;
+    int count = ml->_nodecount;
+    Node** vnode = ml->_nodelist;
     for (int i = 0; i < count; ++i) {
         NODERHS(vnode[i]) -= ml->data(i, g_index) * (NODEV(vnode[i]) - ml->data(i, e_index));
     }
 }
 
 static void pas_jacob(NrnThread* nt, Memb_list* ml, int type) {
-    int count = ml->nodecount;
-    Node** vnode = ml->nodelist;
+    int count = ml->_nodecount;
+    Node** vnode = ml->_nodelist;
     for (int i = 0; i < count; ++i) {
         NODED(vnode[i]) += ml->data(i, g_index);
     }

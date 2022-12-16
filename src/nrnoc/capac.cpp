@@ -30,12 +30,12 @@ It used to be static but is now a thread data variable
 */
 
 void nrn_cap_jacob(NrnThread* _nt, Memb_list* ml) {
-    int count = ml->nodecount;
-    Node** vnode = ml->nodelist;
+    int count = ml->_nodecount;
+    Node** vnode = ml->_nodelist;
     double cfac = .001 * _nt->cj;
 #if CACHEVEC
     if (use_cachevec) {
-        int* ni = ml->nodeindices;
+        int* ni = ml->_nodeindices;
         for (int i = 0; i < count; i++) {
             VEC_D(ni[i]) += cfac * ml->data(i, cm_index);
         }
@@ -49,22 +49,22 @@ void nrn_cap_jacob(NrnThread* _nt, Memb_list* ml) {
 }
 
 static void cap_init(NrnThread* _nt, Memb_list* ml, int type) {
-    int count = ml->nodecount;
+    int count = ml->_nodecount;
     for (int i = 0; i < count; ++i) {
         ml->data(i, i_cap_index) = 0;
     }
 }
 
 void nrn_capacity_current(NrnThread* _nt, Memb_list* ml) {
-    int count = ml->nodecount;
-    Node** vnode = ml->nodelist;
+    int count = ml->_nodecount;
+    Node** vnode = ml->_nodelist;
     double cfac = .001 * _nt->cj;
     /* since rhs is dvm for a full or half implicit step */
     /* (nrn_update_2d() replaces dvi by dvi-dvx) */
     /* no need to distinguish secondorder */
 #if CACHEVEC
     if (use_cachevec) {
-        int* ni = ml->nodeindices;
+        int* ni = ml->_nodeindices;
         for (int i = 0; i < count; i++) {
             ml->data(i, i_cap_index) = cfac * ml->data(i, cm_index) * VEC_RHS(ni[i]);
         }
@@ -79,12 +79,12 @@ void nrn_capacity_current(NrnThread* _nt, Memb_list* ml) {
 
 
 void nrn_mul_capacity(NrnThread* _nt, Memb_list* ml) {
-    int count = ml->nodecount;
-    Node** vnode = ml->nodelist;
+    int count = ml->_nodecount;
+    Node** vnode = ml->_nodelist;
     double cfac = .001 * _nt->cj;
 #if CACHEVEC
     if (use_cachevec) {
-        int* ni = ml->nodeindices;
+        int* ni = ml->_nodeindices;
         for (int i = 0; i < count; i++) {
             VEC_RHS(ni[i]) *= cfac * ml->data(i, cm_index);
         }
@@ -98,11 +98,11 @@ void nrn_mul_capacity(NrnThread* _nt, Memb_list* ml) {
 }
 
 void nrn_div_capacity(NrnThread* _nt, Memb_list* ml) {
-    int count = ml->nodecount;
-    Node** vnode = ml->nodelist;
+    int count = ml->_nodecount;
+    Node** vnode = ml->_nodelist;
 #if CACHEVEC
     if (use_cachevec) {
-        int* ni = ml->nodeindices;
+        int* ni = ml->_nodeindices;
         for (int i = 0; i < count; i++) {
             ml->data(i, i_cap_index) = VEC_RHS(ni[i]);
             VEC_RHS(ni[i]) /= 1.e-3 * ml->data(i, cm_index);

@@ -130,8 +130,8 @@ void nrn_update_2d(NrnThread* nt) {
         return;
     }
     cfac = .001 * nt->cj;
-    cnt = ml->nodecount;
-    ndlist = ml->nodelist;
+    cnt = ml->_nodecount;
+    ndlist = ml->_nodelist;
 
     for (i = 0; i < cnt; ++i) {
         nd = ndlist[i];
@@ -191,8 +191,8 @@ static void extcell_alloc(Prop* p) {
 
 /*ARGSUSED*/
 static void extcell_init(NrnThread* nt, Memb_list* ml, int type) {
-    int ndcount = ml->nodecount;
-    Node** ndlist = ml->nodelist;
+    int ndcount = ml->_nodecount;
+    Node** ndlist = ml->_nodelist;
     if ((cvode_active_ > 0) && (nrn_use_daspk_ == 0)) {
         hoc_execerror("Extracellular mechanism only works with fixed step methods and daspk", 0);
     }
@@ -347,8 +347,8 @@ void nrn_rhs_ext(NrnThread* _nt) {
     if (!ml) {
         return;
     }
-    cnt = ml->nodecount;
-    ndlist = ml->nodelist;
+    cnt = ml->_nodecount;
+    ndlist = ml->_nodelist;
 
     /* nd rhs contains -membrane current + stim current */
     /* nde rhs contains stim current */
@@ -427,8 +427,8 @@ void nrn_setup_ext(NrnThread* _nt) {
         return;
     }
     /*printnode("begin setup");*/
-    cnt = ml->nodecount;
-    ndlist = ml->nodelist;
+    cnt = ml->_nodecount;
+    ndlist = ml->_nodelist;
     cfac = .001 * _nt->cj;
 
     /* d contains all the membrane conductances (and capacitance) */

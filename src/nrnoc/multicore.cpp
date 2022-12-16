@@ -467,13 +467,13 @@ void nrn_threads_free() {
         for (tml = nt->tml; tml; tml = tml2) {
             Memb_list* ml = tml->ml;
             tml2 = tml->next;
-            free((char*) ml->nodelist);
-            free((char*) ml->nodeindices);
+            free((char*) ml->_nodelist);
+            free((char*) ml->_nodeindices);
             if (memb_func[tml->index].hoc_mech) {
                 free((char*) ml->prop);
             } else {
                 // free((char*) ml->_data);
-                free((char*) ml->pdata);
+                free((char*) ml->_pdata);
             }
             if (ml->_thread) {
                 if (memb_func[tml->index].thread_cleanup_) {
@@ -593,12 +593,12 @@ printf("thread_memblist_setup %lx v_node_count=%d ncell=%d end=%d\n", (long)nth,
                 _nt->_ecell_memb_list = tml->ml;
             }
             mlmap[i] = tml->ml;
-            CACHELINE_ALLOC(tml->ml->nodelist, Node*, mlcnt[i]);
-            CACHELINE_ALLOC(tml->ml->nodeindices, int, mlcnt[i]);
+            CACHELINE_ALLOC(tml->ml->_nodelist, Node*, mlcnt[i]);
+            CACHELINE_ALLOC(tml->ml->_nodeindices, int, mlcnt[i]);
             if (memb_func[i].hoc_mech) {
                 tml->ml->prop = (Prop**) emalloc(mlcnt[i] * sizeof(Prop*));
             } else {
-                CACHELINE_ALLOC(tml->ml->pdata, Datum*, mlcnt[i]);
+                CACHELINE_ALLOC(tml->ml->_pdata, Datum*, mlcnt[i]);
             }
             tml->ml->_thread = (Datum*) 0;
             if (memb_func[i].thread_size_) {
@@ -607,7 +607,7 @@ printf("thread_memblist_setup %lx v_node_count=%d ncell=%d end=%d\n", (long)nth,
                     (*memb_func[tml->index].thread_mem_init_)(tml->ml->_thread);
                 }
             }
-            tml->ml->nodecount = 0; /* counted again below */
+            tml->ml->_nodecount = 0; /* counted again below */
         }
     }
     CACHELINE_CALLOC(_nt->_ml_list, Memb_list*, n_memb_func);
@@ -622,15 +622,15 @@ printf("thread_memblist_setup %lx v_node_count=%d ncell=%d end=%d\n", (long)nth,
             if (memb_func[p->_type].current || memb_func[p->_type].state ||
                 memb_func[p->_type].has_initialize()) {
                 Memb_list* ml = mlmap[p->_type];
-                ml->nodelist[ml->nodecount] = nd;
-                ml->nodeindices[ml->nodecount] = nd->v_node_index;
+                ml->_nodelist[ml->_nodecount] = nd;
+                ml->_nodeindices[ml->_nodecount] = nd->v_node_index;
                 if (memb_func[p->_type].hoc_mech) {
-                    ml->prop[ml->nodecount] = p;
+                    ml->prop[ml->_nodecount] = p;
                 } else {
-                    // ml->_data[ml->nodecount] = p->param;
-                    ml->pdata[ml->nodecount] = p->dparam;
+                    // ml->_data[ml->_nodecount] = p->param;
+                    ml->_pdata[ml->_nodecount] = p->dparam;
                 }
-                ++ml->nodecount;
+                ++ml->_nodecount;
             }
         }
     }
@@ -664,10 +664,10 @@ printf("thread_memblist_setup %lx v_node_count=%d ncell=%d end=%d\n", (long)nth,
     }
 #if 0
 	for (i=0; i < n_memb_func; ++i) {
-		if (mlcnt[i]) {assert(mlcnt[i] = mlmap[i]->nodecount);}
+		if (mlcnt[i]) {assert(mlcnt[i] = mlmap[i]->_nodecount);}
 	}
 	for (tml = _nt->tml; tml; tml = tml->next) {
-		assert(mlcnt[tml->index] == tml->ml->nodecount);
+		assert(mlcnt[tml->index] == tml->ml->_nodecount);
 	}
 #endif
     /* fill the ba lists */
@@ -707,8 +707,8 @@ printf("thread_memblist_setup %lx v_node_count=%d ncell=%d end=%d\n", (long)nth,
     /* artificial cells done in v_setup_vectors() */
     for (tml = _nt->tml; tml; tml = tml->next)
         if (memb_func[tml->index].is_point) {
-            for (i = 0; i < tml->ml->nodecount; ++i) {
-                auto* pnt = tml->ml->pdata[i][1].get<Point_process*>();
+            for (i = 0; i < tml->ml->_nodecount; ++i) {
+                auto* pnt = tml->ml->_pdata[i][1].get<Point_process*>();
                 pnt->_vnt = _nt;
             }
         }
@@ -916,7 +916,7 @@ void nrn_thread_table_check() {
     for (auto [id, tml]: table_check_) {
         Memb_list* ml = tml->ml;
         (*memb_func[tml->index].thread_table_check_)(
-            ml, 0, ml->pdata[0], ml->_thread, nrn_threads + id, tml->index);
+            ml, 0, ml->_pdata[0], ml->_thread, nrn_threads + id, tml->index);
     }
 }
 

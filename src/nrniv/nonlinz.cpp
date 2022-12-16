@@ -228,7 +228,7 @@ NonLinImpRep::NonLinImpRep() {
     n_v_ = _nt->end;
     n_ext_ = 0;
     if (_nt->_ecell_memb_list) {
-        n_ext_ = _nt->_ecell_memb_list->nodecount * nlayer;
+        n_ext_ = _nt->_ecell_memb_list->_nodecount * nlayer;
     }
     n_lin_ = nrndae_extra_eqn_count();
     n_ode_ = 0;
@@ -238,7 +238,7 @@ NonLinImpRep::NonLinImpRep() {
         nrn_ode_count_t s = memb_func[i].ode_count;
         if (s) {
             cnt = (*s)(i);
-            n_ode_ += cnt * ml->nodecount;
+            n_ode_ += cnt * ml->_nodecount;
         }
     }
     neq_v_ = n_v_ + n_ext_ + n_lin_;
@@ -302,7 +302,7 @@ void NonLinImpRep::delta(double deltafac) {  // also defines pv_,pvdot_ map for 
     for (NrnThreadMembList* tml = nt->tml; tml; tml = tml->next) {
         Memb_list* ml = tml->ml;
         i = tml->index;
-        nc = ml->nodecount;
+        nc = ml->_nodecount;
         nrn_ode_count_t s = memb_func[i].ode_count;
         if (s && (cnt = (*s)(i)) > 0) {
             nrn_ode_map_t m = memb_func[i].ode_map;
@@ -312,7 +312,7 @@ void NonLinImpRep::delta(double deltafac) {  // also defines pv_,pvdot_ map for 
                      pvdot_ + ieq,
                      ml,
                      j,
-                     ml->pdata[j],
+                     ml->_pdata[j],
                      deltavec_ + ieq,
                      i);
                 ieq += cnt;
@@ -346,9 +346,9 @@ void NonLinImpRep::didv() {
     }
     // jwC term
     Memb_list* mlc = _nt->tml->ml;
-    int n = mlc->nodecount;
+    int n = mlc->_nodecount;
     for (i = 0; i < n; ++i) {
-        j = mlc->nodelist[i]->v_node_index;
+        j = mlc->_nodelist[i]->v_node_index;
         diag_[v_index_[j] - 1][1] += .001 * mlc->data(i, 0) * omega_;
     }
     // di/dv terms
@@ -371,8 +371,8 @@ void NonLinImpRep::didv() {
             continue;
         }
         Memb_list* ml = tml->ml;
-        for (j = 0; j < ml->nodecount; ++j) {
-            Node* nd = ml->nodelist[j];
+        for (j = 0; j < ml->_nodecount; ++j) {
+            Node* nd = ml->_nodelist[j];
             double x2;
             // zero rhs
             // save v
@@ -405,15 +405,15 @@ void NonLinImpRep::dids() {
     for (NrnThreadMembList* tml = nt->tml; tml; tml = tml->next) {
         Memb_list* ml = tml->ml;
         i = tml->index;
-        if (memb_func[i].ode_count && ml->nodecount) {
-            int nc = ml->nodecount;
+        if (memb_func[i].ode_count && ml->_nodecount) {
+            int nc = ml->_nodecount;
             nrn_ode_count_t s = memb_func[i].ode_count;
             int cnt = (*s)(i);
             if (memb_func[i].current) {
                 double* x1 = rv_;  // use as temporary storage
                 double* x2 = jv_;
-                for (in = 0; in < ml->nodecount; ++in) {
-                    Node* nd = ml->nodelist[in];
+                for (in = 0; in < ml->_nodecount; ++in) {
+                    Node* nd = ml->_nodelist[in];
                     // zero rhs
                     NODERHS(nd) = 0;
                     // compute rhs
@@ -454,16 +454,16 @@ void NonLinImpRep::dsdv() {
     for (NrnThreadMembList* tml = nt->tml; tml; tml = tml->next) {
         Memb_list* ml = tml->ml;
         i = tml->index;
-        if (memb_func[i].ode_count && ml->nodecount) {
-            int nc = ml->nodecount;
+        if (memb_func[i].ode_count && ml->_nodecount) {
+            int nc = ml->_nodecount;
             nrn_ode_count_t s = memb_func[i].ode_count;
             int cnt = (*s)(i);
             if (memb_func[i].current) {
                 double* x1 = rv_;  // use as temporary storage
                 double* x2 = jv_;
                 // zero rhs, save v
-                for (in = 0; in < ml->nodecount; ++in) {
-                    Node* nd = ml->nodelist[in];
+                for (in = 0; in < ml->_nodecount; ++in) {
+                    Node* nd = ml->_nodelist[in];
                     for (is = ieq + in * cnt, iis = 0; iis < cnt; ++iis, ++is) {
                         *pvdot_[is] = 0.;
                     }
@@ -471,8 +471,8 @@ void NonLinImpRep::dsdv() {
                 }
                 // increment v only once in case there are multiple
                 // point processes at the same location
-                for (in = 0; in < ml->nodecount; ++in) {
-                    Node* nd = ml->nodelist[in];
+                for (in = 0; in < ml->_nodecount; ++in) {
+                    Node* nd = ml->_nodelist[in];
                     auto const v = nd->v();
                     if (x1[in] == v) {
                         nd->set_v(v + delta_);
@@ -481,8 +481,8 @@ void NonLinImpRep::dsdv() {
                 // compute rhs. this is the rhs(v+dv)
                 ode(i, ml);
                 // save rhs, restore v, and zero rhs
-                for (in = 0; in < ml->nodecount; ++in) {
-                    Node* nd = ml->nodelist[in];
+                for (in = 0; in < ml->_nodecount; ++in) {
+                    Node* nd = ml->_nodelist[in];
                     for (is = ieq + in * cnt, iis = 0; iis < cnt; ++iis, ++is) {
                         x2[is] = *pvdot_[is];
                         *pvdot_[is] = 0;
@@ -492,8 +492,8 @@ void NonLinImpRep::dsdv() {
                 // compute the rhs(v)
                 ode(i, ml);
                 // fill the ds/dv elements
-                for (in = 0; in < ml->nodecount; ++in) {
-                    Node* nd = ml->nodelist[in];
+                for (in = 0; in < ml->_nodecount; ++in) {
+                    Node* nd = ml->_nodelist[in];
                     for (is = ieq + in * cnt, iis = 0; iis < cnt; ++iis, ++is) {
                         double ds = (x2[is] - *pvdot_[is]) / delta_;
                         if (ds != 0.) {
@@ -520,14 +520,14 @@ void NonLinImpRep::dsds() {
     for (NrnThreadMembList* tml = nt->tml; tml; tml = tml->next) {
         Memb_list* ml = tml->ml;
         i = tml->index;
-        if (memb_func[i].ode_count && ml->nodecount) {
-            int nc = ml->nodecount;
+        if (memb_func[i].ode_count && ml->_nodecount) {
+            int nc = ml->_nodecount;
             nrn_ode_count_t s = memb_func[i].ode_count;
             int cnt = (*s)(i);
             double* x1 = rv_;  // use as temporary storage
             double* x2 = jv_;
             // zero rhs, save s
-            for (in = 0; in < ml->nodecount; ++in) {
+            for (in = 0; in < ml->_nodecount; ++in) {
                 for (is = ieq + in * cnt, iis = 0; iis < cnt; ++iis, ++is) {
                     *pvdot_[is] = 0.;
                     x1[is] = *pv_[is];
@@ -536,7 +536,7 @@ void NonLinImpRep::dsds() {
             // compute rhs. this is the rhs(s)
             ode(i, ml);
             // save rhs
-            for (in = 0; in < ml->nodecount; ++in) {
+            for (in = 0; in < ml->_nodecount; ++in) {
                 for (is = ieq + in * cnt, iis = 0; iis < cnt; ++iis, ++is) {
                     x2[is] = *pvdot_[is];
                 }
@@ -544,7 +544,7 @@ void NonLinImpRep::dsds() {
             // iterate over the states
             for (kks = 0; kks < cnt; ++kks) {
                 // zero rhs, increment s(ks)
-                for (in = 0; in < ml->nodecount; ++in) {
+                for (in = 0; in < ml->_nodecount; ++in) {
                     ks = ieq + in * cnt + kks;
                     for (is = ieq + in * cnt, iis = 0; iis < cnt; ++iis, ++is) {
                         *pvdot_[is] = 0.;
@@ -554,8 +554,8 @@ void NonLinImpRep::dsds() {
                 ode(i, ml);
                 // store element and restore s
                 // fill the ds/dv elements
-                for (in = 0; in < ml->nodecount; ++in) {
-                    Node* nd = ml->nodelist[in];
+                for (in = 0; in < ml->_nodecount; ++in) {
+                    Node* nd = ml->_nodelist[in];
                     ks = ieq + in * cnt + kks;
                     for (is = ieq + in * cnt, iis = 0; iis < cnt; ++iis, ++is) {
                         double ds = (*pvdot_[is] - x2[is]) / deltavec_[is];
@@ -581,13 +581,13 @@ void NonLinImpRep::current(int im, Memb_list* ml, int in) {  // assume there is 
     // fake a 1 element memb_list
     Memb_list mfake{im};
 #if CACHEVEC != 0
-    mfake.nodeindices = ml->nodeindices + in;
+    mfake._nodeindices = ml->_nodeindices + in;
 #endif
-    mfake.nodelist = ml->nodelist + in;
+    mfake._nodelist = ml->_nodelist + in;
     mfake.set_storage_offset(ml->get_storage_offset());
-    mfake.pdata = ml->pdata + in;
+    mfake._pdata = ml->_pdata + in;
     mfake.prop = ml->prop ? ml->prop + in : nullptr;
-    mfake.nodecount = 1;
+    mfake._nodecount = 1;
     mfake._thread = ml->_thread;
     (*s)(nrn_threads, &mfake, im);
 }

@@ -170,13 +170,13 @@ size_t nrnthreads_type_return(int type, int tid, double*& data, std::vector<doub
         Memb_list* ml = nt._ml_list[type];
         if (ml) {
             mdata = ml->data();
-            n = ml->nodecount;
+            n = ml->_nodecount;
         } else {
             // The single thread case is easy
             if (nrn_nthread == 1) {
                 ml = &memb_list[type];
                 mdata = ml->data();
-                n = ml->nodecount;
+                n = ml->_nodecount;
             } else {
                 // mk_tml_with_art() created a cgs[id].mlwithart which appended
                 // artificial cells to the end. Turns out that
@@ -185,7 +185,7 @@ size_t nrnthreads_type_return(int type, int tid, double*& data, std::vector<doub
                 // has already been deleted.  So we defer deletion of the necessary
                 // cellgroups_ portion (deleting it on return from nrncore_run).
                 auto& ml = CellGroup::deferred_type2artml_[tid][type];
-                n = size_t(ml->nodecount);
+                n = size_t(ml->_nodecount);
                 mdata = ml->data();
             }
         }
@@ -255,14 +255,14 @@ int nrnthread_dat2_1(int tid,
         int type = mla[j].first;
         Memb_list* ml = mla[j].second;
         tml_index[j] = type;
-        ml_nodecount[j] = ml->nodecount;
+        ml_nodecount[j] = ml->_nodecount;
         cg.ml_vdata_offset[j] = vdata_offset;
         int* ds = memb_func[type].dparam_semantics;
         for (int psz = 0; psz < bbcore_dparam_size[type]; ++psz) {
             if (ds[psz] == -4 || ds[psz] == -6 || ds[psz] == -7 || ds[psz] == 0) {
                 // printf("%s ds[%d]=%d vdata_offset=%d\n", memb_func[type].sym->name, psz, ds[psz],
                 // vdata_offset);
-                vdata_offset += ml->nodecount;
+                vdata_offset += ml->_nodecount;
             }
         }
     }
@@ -351,7 +351,7 @@ int nrnthread_dat2_mech(int tid,
 
     int vdata_offset = cg.ml_vdata_offset[i];
     int isart = nrn_is_artificial_[type];
-    int n = ml->nodecount;
+    int n = ml->_nodecount;
     int sz = nrn_prop_param_size_[type];
 
     // As the NEURON data is now transposed then for now always create a new
@@ -371,14 +371,14 @@ int nrnthread_dat2_mech(int tid,
         // data1 = contiguous_art_data(ml, n, sz);  // delete after use
         nodeindices = NULL;
     } else {
-        nodeindices = ml->nodeindices;  // allocated below if copy
+        nodeindices = ml->_nodeindices;  // allocated below if copy
         // data1 = ml->_data[0];           // do not delete after use
     }
     if (copy) {
         if (!isart) {
             nodeindices = (int*) emalloc(n * sizeof(int));
             for (int i = 0; i < n; ++i) {
-                nodeindices[i] = ml->nodeindices[i];
+                nodeindices[i] = ml->_nodeindices[i];
             }
         }
         // int nn = n * sz;
@@ -492,8 +492,9 @@ int nrnthread_dat2_corepointer_mech(int tid,
     dcnt = 0;
     icnt = 0;
     // data size and allocate
-    for (int i = 0; i < ml->nodecount; ++i) {
-        (*nrn_bbcore_write_[type])(NULL, NULL, &dcnt, &icnt, ml, i, ml->pdata[i], ml->_thread, &nt);
+    for (int i = 0; i < ml->_nodecount; ++i) {
+        (*nrn_bbcore_write_[type])(
+            NULL, NULL, &dcnt, &icnt, ml, i, ml->_pdata[i], ml->_thread, &nt);
     }
     dArray = NULL;
     iArray = NULL;
@@ -505,9 +506,9 @@ int nrnthread_dat2_corepointer_mech(int tid,
     }
     icnt = dcnt = 0;
     // data values
-    for (int i = 0; i < ml->nodecount; ++i) {
+    for (int i = 0; i < ml->_nodecount; ++i) {
         (*nrn_bbcore_write_[type])(
-            dArray, iArray, &dcnt, &icnt, ml, i, ml->pdata[i], ml->_thread, &nt);
+            dArray, iArray, &dcnt, &icnt, ml, i, ml->_pdata[i], ml->_thread, &nt);
     }
 
     return 1;
@@ -532,8 +533,8 @@ int core2nrn_corepointer_mech(int tid, int type, int icnt, int dcnt, int* iArray
     int ik = 0;
     int dk = 0;
     // data values
-    for (int i = 0; i < ml->nodecount; ++i) {
-        (*nrn_bbcore_read_[type])(dArray, iArray, &dk, &ik, ml, i, ml->pdata[i], ml->_thread, &nt);
+    for (int i = 0; i < ml->_nodecount; ++i) {
+        (*nrn_bbcore_read_[type])(dArray, iArray, &dk, &ik, ml, i, ml->_pdata[i], ml->_thread, &nt);
     }
     assert(dk == dcnt);
     assert(ik == icnt);
@@ -549,9 +550,9 @@ int* datum2int(int type,
                std::vector<int>& pointer2type) {
     int isart = nrn_is_artificial_[di.type];
     int sz = bbcore_dparam_size[type];
-    int* pdata = new int[ml->nodecount * sz];
+    int* pdata = new int[ml->_nodecount * sz];
     int* semantics = memb_func[type].dparam_semantics;
-    for (int i = 0; i < ml->nodecount; ++i) {
+    for (int i = 0; i < ml->_nodecount; ++i) {
         int ioff = i * sz;
         for (int j = 0; j < sz; ++j) {
             int jj = ioff + j;
@@ -694,7 +695,7 @@ int nrnthread_dat2_vecplay_inst(int tid,
                         continue;
                     }
                     Memb_list* ml = tml->ml;
-                    int nn = nrn_prop_param_size_[tml->index] * ml->nodecount;
+                    int nn = nrn_prop_param_size_[tml->index] * ml->_nodecount;
                     auto const legacy_index = ml->legacy_index(pd);
                     if (legacy_index >= 0) {
                         mtype = tml->index;
@@ -1061,14 +1062,14 @@ static void core2nrn_SelfEvent_helper(int tid,
     Memb_list* ml = nrn_threads[tid]._ml_list[tar_type];
     Point_process* pnt;
     if (ml) {
-        pnt = ml->pdata[tar_index][1].get<Point_process*>();
+        pnt = ml->_pdata[tar_index][1].get<Point_process*>();
     } else {
         // In NEURON world, ARTIFICIAL_CELLs do not live in NrnThread.
         // And the old deferred_type2artdata_ only gave us data, not pdata.
         // So this is where I decided to replace the more
         // expensive deferred_type2artml_.
         ml = CellGroup::deferred_type2artml_[tid][tar_type];
-        pnt = ml->pdata[tar_index][1].get<Point_process*>();
+        pnt = ml->_pdata[tar_index][1].get<Point_process*>();
     }
 
     // Needs to be tested when permuted on CoreNEURON side.
@@ -1097,7 +1098,7 @@ void core2nrn_SelfEvent_event(int tid,
 #if 1
     // verify nc->target_ consistent with tar_type, tar_index.
     Memb_list* ml = nrn_threads[tid]._ml_list[tar_type];
-    auto* pnt = ml->pdata[tar_index][1].get<Point_process*>();
+    auto* pnt = ml->_pdata[tar_index][1].get<Point_process*>();
     assert(nc->target_ == pnt);
 #endif
 
@@ -1185,7 +1186,7 @@ void core2nrn_watch_activate(int tid, int type, int watch_begin, Core2NrnWatchIn
     Memb_list* ml = nt._ml_list[type];
     for (size_t i = 0; i < wi.size(); ++i) {
         Core2NrnWatchInfoItem& active_watch_items = wi[i];
-        Datum* pd = ml->pdata[i];
+        Datum* pd = ml->_pdata[i];
         int r = 0;  // first activate removes formerly active from pd.
         for (auto watch_item: active_watch_items) {
             int watch_index = watch_item.first;
@@ -1223,6 +1224,6 @@ void nrn2core_patternstim(void** info) {
     }
 
     Memb_list& ml = memb_list[patternstim_type];
-    assert(ml.nodecount == 1);
-    *info = nrn_patternstim_info_ref(ml.pdata[0]);
+    assert(ml._nodecount == 1);
+    *info = nrn_patternstim_info_ref(ml._pdata[0]);
 }

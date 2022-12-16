@@ -424,7 +424,7 @@ saved %s but need %s\n",
 }
 
 bool SaveState::checkacell(ACellState& ac, int type, bool warn) {
-    if (memb_list[type].nodecount != ac.ncell) {
+    if (memb_list[type]._nodecount != ac.ncell) {
         if (warn) {
             fprintf(stderr,
                     "SaveState warning: different number of %s saved than exist.\n",
@@ -515,7 +515,7 @@ void SaveState::allocnode(NodeState& ns, Node* nd) {
 void SaveState::allocacell(ACellState& ac, int type) {
     Memb_list& ml = memb_list[type];
     ac.type = type;
-    ac.ncell = ml.nodecount;
+    ac.ncell = ml._nodecount;
     if (ac.ncell) {
         ac.state = new double[ac.ncell * ssi[type].size];
     }
@@ -668,7 +668,7 @@ void SaveState::saveacell(ACellState& ac, int type) {
     Memb_list& ml = memb_list[type];
     int sz = ssi[type].size;
     double* p = ac.state;
-    for (int i = 0; i < ml.nodecount; ++i) {
+    for (int i = 0; i < ml._nodecount; ++i) {
         for (int j = 0; j < sz; ++j) {
             (*p++) = ml.data(i, j);
         }
@@ -753,7 +753,7 @@ void SaveState::restoreacell(ACellState& ac, int type) {
     Memb_list& ml = memb_list[type];
     int sz = ssi[type].size;
     double* p = ac.state;
-    for (int i = 0; i < ml.nodecount; ++i) {
+    for (int i = 0; i < ml._nodecount; ++i) {
         for (int j = 0; j < sz; ++j) {
             ml.data(i, j) = (*p++);
         }
@@ -829,7 +829,7 @@ void SaveState::read(OcFile* ocf, bool close) {
             int nt = 0, nc = 0, ns = 0;
             ASSERTfgets(buf, 200, f);
             nrn_assert(sscanf(buf, "%d %d %d\n", &nt, &nc, &ns) == 3);
-            assert(nt == i && nc == memb_list[i].nodecount);
+            assert(nt == i && nc == memb_list[i]._nodecount);
             assert(ns == nc * ssi[i].size);
             acell_[j].ncell = nc;
             if (nc) {

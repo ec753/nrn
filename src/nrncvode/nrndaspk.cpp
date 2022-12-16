@@ -407,9 +407,9 @@ void Cvode::daspk_scatter_y(double* y, int tid) {
     if (z.cmlext_) {
         assert(z.cmlext_->ml.size() == 1);
         Memb_list* ml = &z.cmlext_->ml[0];
-        int i, n = ml->nodecount;
+        int i, n = ml->_nodecount;
         for (i = 0; i < n; ++i) {
-            Node* nd = ml->nodelist[i];
+            Node* nd = ml->_nodelist[i];
             nd->v() -= nd->extnode->v[0];
         }
     }
@@ -430,9 +430,9 @@ void Cvode::daspk_gather_y(double* y, int tid) {
     if (z.cmlext_) {
         assert(z.cmlext_->ml.size() == 1);
         Memb_list* ml = &z.cmlext_->ml[0];
-        int i, n = ml->nodecount;
+        int i, n = ml->_nodecount;
         for (i = 0; i < n; ++i) {
-            Node* nd = ml->nodelist[i];
+            Node* nd = ml->_nodelist[i];
             int j = nd->eqn_index_;
             y[j - 1] += y[j];
         }
@@ -498,13 +498,13 @@ for (i=0; i < z.nvsize_; ++i) {
     if (z.cmlcap_) {
         assert(z.cmlcap_->ml.size() == 1);
         Memb_list* ml = &z.cmlcap_->ml[0];
-        int n = ml->nodecount;
+        int n = ml->_nodecount;
         double* p = NULL;
         if (nt->_nrn_fast_imem) {
             p = nt->_nrn_fast_imem->_nrn_sav_rhs;
         }
         for (i = 0; i < n; ++i) {
-            Node* nd = ml->nodelist[i];
+            Node* nd = ml->_nodelist[i];
             int j = nd->eqn_index_ - 1;
             Extnode* nde = nd->extnode;
             double cdvm;
@@ -535,9 +535,9 @@ for (i=0; i < z.nvsize_; ++i) {
     if (z.cmlext_) {
         assert(z.cmlext_->ml.size() == 1);
         Memb_list* ml = &z.cmlext_->ml[0];
-        int n = ml->nodecount;
+        int n = ml->_nodecount;
         for (i = 0; i < n; ++i) {
-            Node* nd = ml->nodelist[i];
+            Node* nd = ml->_nodelist[i];
             int j = nd->eqn_index_;
 #if EXTRACELLULAR
 #if I_MEMBRANE

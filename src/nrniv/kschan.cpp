@@ -2571,9 +2571,9 @@ void KSChan::alloc_schan_node_data() {
 }
 
 void KSChan::init(NrnThread* nt, Memb_list* ml) {
-    int n = ml->nodecount;
-    Node** nd = ml->nodelist;
-    Datum** ppd = ml->pdata;
+    int n = ml->_nodecount;
+    Node** nd = ml->_nodelist;
+    Datum** ppd = ml->_pdata;
     if (nstate_) {
         for (int i = 0; i < n; ++i) {
             double v = NODEV(nd[i]);
@@ -2607,9 +2607,9 @@ void KSChan::init(NrnThread* nt, Memb_list* ml) {
 }
 
 void KSChan::state(NrnThread* nt, Memb_list* ml) {
-    int n = ml->nodecount;
-    Node** nd = ml->nodelist;
-    Datum** ppd = ml->pdata;
+    int n = ml->_nodecount;
+    Node** nd = ml->_nodelist;
+    Datum** ppd = ml->_pdata;
     int i, j;
     double* s;
     if (nstate_) {
@@ -2664,10 +2664,10 @@ void KSChan::state(NrnThread* nt, Memb_list* ml) {
 
 #if CACHEVEC
 void KSChan::state_cachevec(NrnThread* _nt, Memb_list* ml) {
-    int n = ml->nodecount;
-    int* ni = ml->nodeindices;
-    Node** nd = ml->nodelist;
-    Datum** ppd = ml->pdata;
+    int n = ml->_nodecount;
+    int* ni = ml->_nodeindices;
+    Node** nd = ml->_nodelist;
+    Datum** ppd = ml->_pdata;
     int i, j;
     double* s;
     if (nstate_) {
@@ -2722,9 +2722,9 @@ void KSChan::state_cachevec(NrnThread* _nt, Memb_list* ml) {
 #endif /* CACHEVEC */
 
 void KSChan::cur(Memb_list* ml) {
-    int n = ml->nodecount;
-    Node** nd = ml->nodelist;
-    Datum** ppd = ml->pdata;
+    int n = ml->_nodecount;
+    Node** nd = ml->_nodelist;
+    Datum** ppd = ml->_pdata;
     int i;
     for (i = 0; i < n; ++i) {
         double g, ic;
@@ -2736,9 +2736,9 @@ void KSChan::cur(Memb_list* ml) {
 
 #if CACHEVEC
 void KSChan::cur(NrnThread* _nt, Memb_list* ml) {
-    int n = ml->nodecount;
-    int* nodeindices = ml->nodeindices;
-    Datum** ppd = ml->pdata;
+    int n = ml->_nodecount;
+    int* nodeindices = ml->_nodeindices;
+    Datum** ppd = ml->_pdata;
     int i;
     for (i = 0; i < n; ++i) {
         double g, ic;
@@ -2751,9 +2751,9 @@ void KSChan::cur(NrnThread* _nt, Memb_list* ml) {
 #endif /* CACHEVEC */
 
 void KSChan::jacob(Memb_list* ml) {
-    int n = ml->nodecount;
-    Node** nd = ml->nodelist;
-    Datum** ppd = ml->pdata;
+    int n = ml->_nodecount;
+    Node** nd = ml->_nodelist;
+    Datum** ppd = ml->_pdata;
     for (int i = 0; i < n; ++i) {
         NODED(nd[i]) += iv_relation_->jacob(ppd[i], NODEV(nd[i]), ml, i, gmaxoffset_);
     }
@@ -2761,10 +2761,10 @@ void KSChan::jacob(Memb_list* ml) {
 
 #if CACHEVEC
 void KSChan::jacob(NrnThread* _nt, Memb_list* ml) {
-    int n = ml->nodecount;
-    Datum** ppd = ml->pdata;
+    int n = ml->_nodecount;
+    Datum** ppd = ml->_pdata;
     for (int i = 0; i < n; ++i) {
-        int ni = ml->nodeindices[i];
+        int ni = ml->_nodeindices[i];
         VEC_D(ni) += iv_relation_->jacob(ppd[i], VEC_V(ni), ml, i, gmaxoffset_);
     }
 }
@@ -3134,9 +3134,9 @@ void KSChan::map(int ieq,
 }
 
 void KSChan::spec(Memb_list* ml) {
-    int n = ml->nodecount;
-    Node** nd = ml->nodelist;
-    Datum** ppd = ml->pdata;
+    int n = ml->_nodecount;
+    Node** nd = ml->_nodelist;
+    Datum** ppd = ml->_pdata;
     int i, j;
     if (nstate_)
         for (i = 0; i < n; ++i) {
@@ -3162,9 +3162,9 @@ void KSChan::spec(Memb_list* ml) {
 }
 
 void KSChan::matsol(NrnThread* nt, Memb_list* ml) {
-    int n = ml->nodecount;
-    Node** nd = ml->nodelist;
-    Datum** ppd = ml->pdata;
+    int n = ml->_nodecount;
+    Node** nd = ml->_nodelist;
+    Datum** ppd = ml->_pdata;
     int i, j;
     if (nstate_)
         for (i = 0; i < n; ++i) {
@@ -3189,9 +3189,9 @@ void KSChan::matsol(NrnThread* nt, Memb_list* ml) {
 
 // from Cvode::do_nonode
 void KSChan::cv_sc_update(NrnThread* nt, Memb_list* ml) {
-    int n = ml->nodecount;
-    Node** nd = ml->nodelist;
-    Datum** ppd = ml->pdata;
+    int n = ml->_nodecount;
+    Node** nd = ml->_nodelist;
+    Datum** ppd = ml->_pdata;
     if (nstate_) {
         for (int i = 0; i < n; ++i) {
             if (ml->data(i, NSingleIndex) > .999) {

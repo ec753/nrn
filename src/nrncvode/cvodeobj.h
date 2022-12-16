@@ -26,11 +26,13 @@ class HTList;
  * @brief Wrapper for Memb_list in CVode related code.
  *
  * This gets used in two ways:
- * - with ml.size() == 1 and ml[0].nodecount > 1 when the mechanism instances to be processed are
+ * - with ml.size() == 1 and ml[0]._nodecount > 1 when the mechanism instances to be processed are
  *   contiguous
- * - with ml.size() >= 1 and ml[i].nodecount == 1 when non-contiguous instances need to be processed
+ * - with ml.size() >= 1 and ml[i]._nodecount == 1 when non-contiguous instances need to be
+ * processed
  *
- * generic configurations with ml.size() and ml[i].nodecount both larger than one are not supported.
+ * generic configurations with ml.size() and ml[i]._nodecount both larger than one are not
+ * supported.
  */
 struct CvMembList {
     CvMembList(int type)

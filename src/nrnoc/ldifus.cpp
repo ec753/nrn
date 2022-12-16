@@ -154,13 +154,13 @@ static void longdifus_diamchange(LongDifus* pld, int m, int sindex, Memb_list* m
     }
     /*printf("longdifus_diamchange %d %d\n", pld->dchange, diam_change_cnt);*/
     vnodecount = _nt->end;
-    n = ml->nodecount;
+    n = ml->_nodecount;
     for (i = 0; i < n; ++i) {
         /* For every child with a parent having this mechanism */
         /* Also child may butte end to end with parent or attach to middle */
         mi = pld->mindex[i];
         if (sindex < 0) {
-            pld->state[i] = ml->pdata[mi][-sindex - 1].get<double*>();
+            pld->state[i] = ml->_pdata[mi][-sindex - 1].get<double*>();
         } else {
             // With the new SOA format it's not possible to easily navigate from
             // the nth array element for a particular index to the mth array
@@ -168,11 +168,11 @@ static void longdifus_diamchange(LongDifus* pld, int m, int sindex, Memb_list* m
             // pld->state[i][ai], but that should now be avoided.
             pld->state[i] = &ml->data(mi, sindex);
         }
-        nd = ml->nodelist[mi];
+        nd = ml->_nodelist[mi];
         pindex = pld->pindex[i];
         if (pindex > -1) {
             mpi = pld->mindex[pindex];
-            pnd = ml->nodelist[mpi];
+            pnd = ml->_nodelist[mpi];
             if (nd->sec_node_index_ == 0) {
                 rall = nd->sec->prop->dparam[4].get<double>();
             } else {
@@ -196,7 +196,7 @@ static void longdifusalloc(LongDifus** ppld, int m, int sindex, Memb_list* ml, N
 
     vnodecount = _nt->end;
     *ppld = pld = (LongDifus*) emalloc(sizeof(LongDifus));
-    n = ml->nodecount;
+    n = ml->_nodecount;
 
     pld->dchange = 0;
     pld->mindex = (int*) ecalloc(n, sizeof(int));
@@ -218,7 +218,7 @@ static void longdifusalloc(LongDifus** ppld, int m, int sindex, Memb_list* ml, N
         map[i] = -1;
     }
     for (i = 0; i < n; ++i) {
-        map[ml->nodelist[i]->v_node_index] = i;
+        map[ml->_nodelist[i]->v_node_index] = i;
     }
 #if 0
 for (i=0; i < vnodecount; ++i) {
@@ -267,8 +267,8 @@ for (i=0; i < vnodecount; ++i) {
 #if 0
 	for (i=0; i < n; ++i) {
 printf("i=%d pin=%d mi=%d :%s node %d state[(%i)]=%g\n", i, pld->pindex[i],
-	pld->mindex[i], secname(ml->nodelist[pld->mindex[i]]->sec),
-	ml->nodelist[pld->mindex[i]]->sec_node_index_
+	pld->mindex[i], secname(ml->_nodelist[pld->mindex[i]]->sec),
+	ml->_nodelist[pld->mindex[i]]->sec_node_index_
 	, sindex, *pld->state[i]);
 	}
 #endif
@@ -347,8 +347,8 @@ static void stagger(int m,
     }
     int const di = dindex + ai;
     auto* const ml = v2ml(v, _nt->id);
-    int const n = ml->nodecount;
-    Datum** const pdata = ml->pdata;
+    int const n = ml->_nodecount;
+    Datum** const pdata = ml->_pdata;
     Datum* const thread = ml->_thread;
 
     // with SOA data we can't get from the 0th element of an array variable
@@ -406,8 +406,8 @@ static void ode(int m,
     }
     auto* const ml = v2ml(v, _nt->id);
     int const di = dindex + ai;
-    int const n = ml->nodecount;
-    Datum** const pdata = ml->pdata;
+    int const n = ml->_nodecount;
+    Datum** const pdata = ml->_pdata;
     Datum* const thread = ml->_thread;
     longdifus_diamchange(pld, m, sindex, ml, _nt);
     /*flux and volume coefficients (if dc is constant this is too often)*/
@@ -451,8 +451,8 @@ static void matsol(int m,
     }
     auto* const ml = v2ml(v, _nt->id);
     auto const di = dindex + ai;
-    int const n = ml->nodecount;
-    Datum** const pdata = ml->pdata;
+    int const n = ml->_nodecount;
+    Datum** const pdata = ml->_pdata;
     Datum* const thread = ml->_thread;
 
     /*flux and volume coefficients (if dc is constant this is too often)*/

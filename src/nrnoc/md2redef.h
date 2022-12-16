@@ -12,11 +12,7 @@
 #undef i
 #undef sec
 
-#undef nodelist
-#undef nodeindices
-#undef pdata
 #undef prop
-#undef nodecount
 
 #undef id
 

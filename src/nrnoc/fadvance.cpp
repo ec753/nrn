@@ -910,7 +910,7 @@ void nrn_finitialize(int setv, double v) {
         /* first clause due to MULTICORE */
         if (nrn_is_artificial_[i])
             if (memb_func[i].has_initialize()) {
-                if (memb_list[i].nodecount) {
+                if (memb_list[i]._nodecount) {
                     // initialize all artificial cells in all threads at once
                     auto& ml = memb_list[i];
                     ml.set_storage_offset(0);
@@ -1021,8 +1021,8 @@ void nrn_ba(neuron::model_sorted_token const& cache_token, NrnThread& nt, int ba
         nrn_bamech_t const f{tbl->bam->f};
         Memb_list* const ml{tbl->ml};
         // TODO move this loop into the translated MOD file code
-        for (int i = 0; i < ml->nodecount; ++i) {
-            f(ml->nodelist[i], ml->pdata[i], ml->_thread, &nt, ml, i);
+        for (int i = 0; i < ml->_nodecount; ++i) {
+            f(ml->_nodelist[i], ml->_pdata[i], ml->_thread, &nt, ml, i);
         }
     }
 }
