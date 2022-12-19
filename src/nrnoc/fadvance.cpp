@@ -1086,31 +1086,3 @@ int nrn_nonvint_block_helper(int method, int size, double* pd1, double* pd2, int
     }
     return rval;
 }
-
-/*
-   Derived from scopmath/euler.cpp. Here because scopmath does not know
-   about NrnThread
-*/
-#include "nrniv_mf.h"
-
-int euler_thread(int neqn,
-                 int* var,
-                 int* der,
-                 double**,  // not used
-                 int (*func)(Memb_list*, std::size_t, Datum*, Datum*, NrnThread*),
-                 Datum* ppvar,
-                 Datum* thread,
-                 NrnThread* nt,
-                 Memb_list* ml,
-                 std::size_t iml) {
-    double dt = nt->_dt;
-
-    /* Calculate the derivatives */
-    (*func)(ml, iml, ppvar, thread, nt);
-
-    /* Update dependent variables --- note defines in euler above*/
-    for (int i = 0; i < neqn; i++)
-        ml->data(iml, var[i]) += dt * ml->data(iml, der[i]);
-
-    return 0;
-}
