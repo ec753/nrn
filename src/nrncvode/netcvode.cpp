@@ -1652,7 +1652,7 @@ bool NetCvode::init_global() {
                     cml->ml[0]._nodeindices = ml->_nodeindices;
 #endif
                     assert(ml->prop);
-                    cml->ml[0].prop = ml->prop; // used for ode_map even when hoc_mech = false
+                    cml->ml[0].prop = ml->prop;  // used for ode_map even when hoc_mech = false
                     if (!mf->hoc_mech) {
                         cml->ml[0]._pdata = ml->_pdata;
                     }
