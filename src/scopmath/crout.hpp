@@ -1,6 +1,7 @@
 /** @file crout.hpp
  *  @copyright (c) 1987-90 Duke University
  */
+#pragma once
 #include "errcodes.hpp"
 #include "newton_struct.h"
 
