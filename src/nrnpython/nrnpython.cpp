@@ -143,110 +143,108 @@ extern "C" int nrnpython_start(int b) {
     static int started = 0;
     // printf("nrnpython_start %d started=%d\n", b, started);
     switch (b) {
-        case 0: // Finalize
-            {
-                if (!started) {
-                    return 0;
-                }
-                PyGILState_STATE gilsav = PyGILState_Ensure();
-                Py_Finalize();
-                del_wcargv(nrn_global_argc);
-                // because of finalize, no PyGILState_Release(gilsav);
-                started = 0;
-            }
-            break;
-        case 1: // Initialize
-            {
-                if (started) {
-                    return 0;
-                }
-                p_nrnpy_pyrun = nrnpy_pyrun;
-                if (nrnpy_nositeflag) {
-                    Py_NoSiteFlag = 1;
-                }
-                // nrnpy_pyhome hopefully holds the python base root and should
-                // work with virtual environments.
-                // But use only if not overridden by the PYTHONHOME environment variable.
-                char* _p_pyhome = getenv("PYTHONHOME");
-                if (_p_pyhome == NULL) {
-                    _p_pyhome = nrnpy_pyhome;
-                }
+    case 0:  // Finalize
+    {
+        if (!started) {
+            return 0;
+        }
+        PyGILState_STATE gilsav = PyGILState_Ensure();
+        Py_Finalize();
+        del_wcargv(nrn_global_argc);
+        // because of finalize, no PyGILState_Release(gilsav);
+        started = 0;
+    } break;
+    case 1:  // Initialize
+    {
+        if (started) {
+            return 0;
+        }
+        p_nrnpy_pyrun = nrnpy_pyrun;
+        if (nrnpy_nositeflag) {
+            Py_NoSiteFlag = 1;
+        }
+        // nrnpy_pyhome hopefully holds the python base root and should
+        // work with virtual environments.
+        // But use only if not overridden by the PYTHONHOME environment variable.
+        char* _p_pyhome = getenv("PYTHONHOME");
+        if (_p_pyhome == NULL) {
+            _p_pyhome = nrnpy_pyhome;
+        }
 #if PY_VERSION_HEX >= 0x03080000
-                PyConfig config;
-                PyConfig_InitPythonConfig(&config);
-                if (_p_pyhome) {
-                    wchar_t *_w_p_pyhome{};
-                    PyConfig_SetBytesString(&config, &_w_p_pyhome, _p_pyhome);
-                    config.home = _w_p_pyhome;
-                }
-                Py_InitializeFromConfig(&config);
+        PyConfig config;
+        PyConfig_InitPythonConfig(&config);
+        if (_p_pyhome) {
+            wchar_t* _w_p_pyhome{};
+            PyConfig_SetBytesString(&config, &_w_p_pyhome, _p_pyhome);
+            config.home = _w_p_pyhome;
+        }
+        Py_InitializeFromConfig(&config);
 #else
-                if (_p_pyhome) {
-                    Py_SetPythonHome(mywstrdup(_p_pyhome));
-                }
-                Py_Initialize();
+        if (_p_pyhome) {
+            Py_SetPythonHome(mywstrdup(_p_pyhome));
+        }
+        Py_Initialize();
 #endif
 #if NRNPYTHON_DYNAMICLOAD
-                // return from Py_Initialize means there was no site problem
-                nrnpy_site_problem = 0;
+        // return from Py_Initialize means there was no site problem
+        nrnpy_site_problem = 0;
 #endif
 #if PY_VERSION_HEX >= 0x03080000
-                PyConfig_SetBytesArgv(&config, nrn_global_argc, nrn_global_argv);
+        PyConfig_SetBytesArgv(&config, nrn_global_argc, nrn_global_argv);
 #else
-                copy_argv_wcargv(nrn_global_argc, nrn_global_argv);
-                PySys_SetArgv(nrn_global_argc, wcargv);
+        copy_argv_wcargv(nrn_global_argc, nrn_global_argv);
+        PySys_SetArgv(nrn_global_argc, wcargv);
 #endif
-                started = 1;
-                // see nrnpy_reg.h
-                for (int i = 0; nrnpy_reg_[i]; ++i) {
-                    (*nrnpy_reg_[i])();
-                }
-                nrnpy_augment_path();
-            }
-            break;
-        case 2: // Execute command / script
-            if (!started) {
-                return 0;
-            }
-            {
+        started = 1;
+        // see nrnpy_reg.h
+        for (int i = 0; nrnpy_reg_[i]; ++i) {
+            (*nrnpy_reg_[i])();
+        }
+        nrnpy_augment_path();
+    } break;
+    case 2:  // Execute command / script
+        if (!started) {
+            return 0;
+        }
+        {
 #if PY_VERSION_HEX >= 0x03080000
-                PyConfig config;
-                PyConfig_InitPythonConfig(&config);
-                PyConfig_SetBytesArgv(&config, nrn_global_argc, nrn_global_argv);
+            PyConfig config;
+            PyConfig_InitPythonConfig(&config);
+            PyConfig_SetBytesArgv(&config, nrn_global_argc, nrn_global_argv);
 #else
-                copy_argv_wcargv(nrn_global_argc, nrn_global_argv);
-                PySys_SetArgv(nrn_global_argc, wcargv);
+            copy_argv_wcargv(nrn_global_argc, nrn_global_argv);
+            PySys_SetArgv(nrn_global_argc, wcargv);
 #endif
-            }
-            nrnpy_augment_path();
+        }
+        nrnpy_augment_path();
 #if !defined(MINGW)
-            // cannot get this to avoid crashing with MINGW
-            PyOS_ReadlineFunctionPointer = nrnpython_getline;
+        // cannot get this to avoid crashing with MINGW
+        PyOS_ReadlineFunctionPointer = nrnpython_getline;
 #endif
-            // Is there a -c "command" or file.py arg.
-            bool python_error_encountered{false};
-            for (int i = 1; i < nrn_global_argc; ++i) {
-                char* arg = nrn_global_argv[i];
-                if (strcmp(arg, "-c") == 0 && i + 1 < nrn_global_argc) {
-                    if (PyRun_SimpleString(nrn_global_argv[i + 1])) {
-                        python_error_encountered = true;
-                    }
-                    break;
-                } else if (strlen(arg) > 3 && strcmp(arg + strlen(arg) - 3, ".py") == 0) {
-                    if (!nrnpy_pyrun(arg)) {
-                        python_error_encountered = true;
-                    }
-                    break;
+        // Is there a -c "command" or file.py arg.
+        bool python_error_encountered{false};
+        for (int i = 1; i < nrn_global_argc; ++i) {
+            char* arg = nrn_global_argv[i];
+            if (strcmp(arg, "-c") == 0 && i + 1 < nrn_global_argc) {
+                if (PyRun_SimpleString(nrn_global_argv[i + 1])) {
+                    python_error_encountered = true;
                 }
+                break;
+            } else if (strlen(arg) > 3 && strcmp(arg + strlen(arg) - 3, ".py") == 0) {
+                if (!nrnpy_pyrun(arg)) {
+                    python_error_encountered = true;
+                }
+                break;
             }
-            // python_error_encountered dictates whether NEURON will exit with a nonzero
-            // code. In noninteractive/batch mode that happens immediately, in
-            // interactive mode then we start a Python interpreter first.
-            if (nrn_istty_) {
-                PyRun_InteractiveLoop(hoc_fin, "stdin");
-            }
-            return python_error_encountered;
-            break;
+        }
+        // python_error_encountered dictates whether NEURON will exit with a nonzero
+        // code. In noninteractive/batch mode that happens immediately, in
+        // interactive mode then we start a Python interpreter first.
+        if (nrn_istty_) {
+            PyRun_InteractiveLoop(hoc_fin, "stdin");
+        }
+        return python_error_encountered;
+        break;
     }
 #endif
     return 0;
