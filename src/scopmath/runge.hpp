@@ -1,6 +1,7 @@
 /** @file runge.hpp
  *  @copyright (c) 1984-90 Duke University
  */
+#pragma once
 #include "errcodes.hpp"
 #include "newton_struct.h"
 #include "scoplib.h"

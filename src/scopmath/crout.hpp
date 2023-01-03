@@ -22,7 +22,8 @@ namespace neuron::scopmath {
  *
  * @returns 0 if no error; 2 if matrix is singular or ill-conditioned.
  */
-inline int crout(int n, double** a, int* perm) {
+template <typename Matrix, typename Permutation>
+int crout(int n, Matrix& a, Permutation& perm) {
     int i, j, k, r, pivot, irow, save_i = 0, krow;
     double sum, *rowmax, equil_1, equil_2;
 
@@ -116,8 +117,8 @@ inline int crout(int n, double** a, int* perm) {
  *
  * Output: p[y[i]] contains the solution vector.
  */
-template <typename Array>
-int solve(int n, double** a, double* b, int* perm, Array p, int* y) {
+template <typename Array, typename Matrix, typename Permutation>
+int solve(int n, Matrix& a, double* b, Permutation& perm, Array& p, int* y) {
     auto const y_ = [&p, y](auto arg) -> auto& {
         return p[y[arg]];
     };
