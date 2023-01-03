@@ -24,8 +24,8 @@ namespace neuron::scopmath {
  *
  * Output: jacobian, computed jacobian matrix.
  */
-template <std::size_t n>
-int buildjacobian(int* index, std::array<double, n>& x, int (*pfunc)(), double* value, std::array<std::array<double, n>, n>& jacobian) {
+template <std::size_t n, typename Array, typename Matrix>
+int buildjacobian(int* index, Array& x, int (*pfunc)(), double* value, Matrix& jacobian) {
     std::array<double, n> high_value{}, low_value{};
     // Compute partial derivatives by central finite differences
     if (index) {
@@ -89,14 +89,14 @@ int buildjacobian(int* index, std::array<double, n>& x, int (*pfunc)(), double* 
  * error.
  */
 template <std::size_t n, typename Array>
-int newton(int* index, Array x, int (*pfunc)(), double* value) {
+int newton(int* index, Array&& x, int (*pfunc)(), double* value) {
     // Create arrays for Jacobian, variable increments, function values, and permutation vector
     std::array<int, n> perm{};
     std::array<double, n> delta_x{};
-    std::array<std::array<double, n>, n> jacobian;
+    std::array<std::array<double, n>, n> jacobian{};
     
     int count{}, error{};
-    for (double change{}, max_dev{}; count++ < MAXITERS;) {
+    for (double change{1.0}, max_dev{}; count++ < MAXITERS;) {
         if (change > MAXCHANGE) {
             // Recalculate Jacobian matrix if solution has changed by more than MAXCHANGE
             buildjacobian<n>(index, x, pfunc, value, jacobian);
