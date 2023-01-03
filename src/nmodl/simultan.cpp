@@ -10,30 +10,24 @@ static List* eqnq;
 
 int nonlin_common(Item*);
 
-std::tuple<std::string, std::string, std::string> fudge(std::string const& name,
-                                                        int numeqn,
-                                                        int listnum) {
+std::string fudge(std::string const& name, int numeqn) {
     if (name == "newton") {
-        return {"<" + std::to_string(numeqn) + ">(", "", ", _ml, _iml"};
+        return "<" + std::to_string(numeqn) + ">(";
     } else {
-        return {"(" + std::to_string(numeqn) + ", ",
-                ", _ml->vector_of_pointers_for_scopmath(_iml, " + std::to_string(numeqn) +
-                    ", _slist" + std::to_string(listnum) + ").data()",
-                ""};
+        return "(" + std::to_string(numeqn) + ", ";
     }
 }
 
 void solv_nonlin(Item* qsol, Symbol* fun, Symbol* method, int numeqn, int listnum) {
-    auto const [tmpl, third, end] = fudge(method->name, numeqn, listnum);
+    // examples of method->name: newton
+    auto const tmpl = fudge(method->name, numeqn);
     Sprintf(buf,
-            "%s%s_slist%d%s, %s_wrapper_returning_int, _dlist%d%s);\n",
+            "%s%s_slist%d, neuron::scopmath::row_view{_ml, _iml}, %s_wrapper_returning_int, _dlist%d);\n",
             method->name,
             tmpl.c_str(),
             listnum,
-            third.c_str(),
             fun->name,
-            listnum,
-            end.c_str());
+            listnum);
     replacstr(qsol, buf);
     /* if sens statement appeared in fun then the steadysens call list,
     built during the massagenonlin phase
@@ -41,15 +35,13 @@ void solv_nonlin(Item* qsol, Symbol* fun, Symbol* method, int numeqn, int listnu
 }
 
 void solv_lineq(Item* qsol, Symbol* fun, Symbol* method, int numeqn, int listnum) {
+    // examples of method->name: simeq
     Sprintf(buf,
             " 0;\n"
             " %s();\n"
-            " error = %s(%d, _coef%d, _ml->vector_of_pointers_for_scopmath(_iml, %d, "
-            "_slist%d).data(), _slist%d);\n",
+            " error = %s(%d, _coef%d, neuron::scopmath::row_view{_ml, _iml}, _slist%d);\n",
             fun->name,
             method->name,
-            numeqn,
-            listnum,
             numeqn,
             listnum,
             listnum);
@@ -213,8 +205,9 @@ Item* mixed_eqns(Item* q2, Item* q3, Item* q4) /* name, '{', '}' */
             numlist);
     qret = insertstr(q3, buf);
     Sprintf(buf,
-            "error = nrn_newton_thread(_newtonspace%d, %d, _slist%d, %s, "
-            "_dlist%d, _ppvar, _thread, _nt, _ml, _iml);\n",
+            "error = nrn_newton_thread(_newtonspace%d, %d, _slist%d, "
+            "neuron::scopmath::row_view{_ml, _iml}, %s, _dlist%d, _ml,"
+            " _iml, _ppvar, _thread, _nt);\n",
             numlist - 1,
             counts,
             numlist,
