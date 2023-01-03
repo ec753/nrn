@@ -9,6 +9,7 @@
 #include "crout_thread.hpp"
 #include "dimplic.hpp"
 #include "euler.hpp"
+#include "euler_thread.hpp"
 #include "newton.hpp"
 #include "newton_thread.hpp"
 #include "runge.hpp"

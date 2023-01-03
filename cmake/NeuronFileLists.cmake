@@ -13,6 +13,7 @@ set(HEADER_FILES_TO_INSTALL
     dimplic.hpp
     errcodes.hpp
     euler.hpp
+    euler_thread.hpp
     hoc.h
     hoc_membf.h
     hocassrt.h
