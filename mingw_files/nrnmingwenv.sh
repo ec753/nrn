@@ -124,6 +124,7 @@ copyinc '
 <math.h>
 <stdio.h>
 <stdlib.h>
+<variant>
 
 <ctype.h>
 <float.h>
