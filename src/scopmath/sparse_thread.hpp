@@ -23,7 +23,6 @@ void nrn_pool_freeall(void* pool);
 namespace neuron::scopmath {
 // lots of helpers in this header; hide them in another namespace
 namespace detail::sparse_thread {
-using FUN = int (*)(void*, double*, double*, Datum*, Datum*, NrnThread*);
 struct Elm {
     unsigned row; /* Row location */
     unsigned col; /* Column location */
@@ -48,8 +47,8 @@ struct SparseObj {                      /* all the state information */
     unsigned neqn;                      /* number of equations */
     unsigned* varord;                   /* row and column order for pivots */
     double* rhs;                        /* initially- right hand side	finally - answer */
-    detail::sparse_thread::FUN oldfun;
-    unsigned ngetcall; /* counter for number of calls to _getelm */
+    void* oldfun;                       /* not completely portable as a way of storing function pointers */
+    unsigned ngetcall; /* counter for number of calls to _wgetelm */
     int phase;         /* 0-solution phase; 1-count phase; 2-build list phase */
     int numop;
     double** coef_list; /* pointer to value in _getelm order */
@@ -575,17 +574,15 @@ inline void spar_minorder(SparseObj* so) {
     check_assert(so);
 }
 
-inline void create_coef_list(SparseObj* so,
+template <typename Callable, typename... Args>
+void create_coef_list(SparseObj* so,
                              int n,
-                             FUN fun,
-                             double* p,
-                             Datum* ppvar,
-                             Datum* thread,
-                             NrnThread* nt) {
+                             Callable fun,
+                             Args... args) {
     initeqn(so, (unsigned) n);
     so->phase = 1;
     so->ngetcall = 0;
-    (*fun)(so, so->rhs, p, ppvar, thread, nt);
+    fun(so, so->rhs, args...);
     if (so->coef_list) {
         free(so->coef_list);
     }
@@ -593,7 +590,7 @@ inline void create_coef_list(SparseObj* so,
     spar_minorder(so);
     so->phase = 2;
     so->ngetcall = 0;
-    (*fun)(so, so->rhs, p, ppvar, thread, nt);
+    fun(so, so->rhs, args...);
     so->phase = 0;
 }
 
@@ -647,7 +644,7 @@ inline SparseObj* create_sparseobj() {
  * caller.
  * @param linflag solve as linear equations when nonlinear, all states are forced >= 0
  */
-template <typename Array>
+template <typename Array, typename Callable, typename... Args>
 int sparse_thread(void** v,
                   int n,
                   int* s,
@@ -655,11 +652,9 @@ int sparse_thread(void** v,
                   Array p,
                   double* t,
                   double dt,
-                  int (*fun)(void*, double*, double*, Datum*, Datum*, NrnThread*),
+                  Callable fun,
                   int linflag,
-                  Datum* ppvar,
-                  Datum* thread,
-                  NrnThread* nt) {
+                  Args... args) {
     auto const s_ = [&p, s](auto arg) -> auto& {
         return p[s[arg]];
     };
@@ -668,24 +663,23 @@ int sparse_thread(void** v,
     };
     int i, j, ierr;
     double err;
-    SparseObj* so;
-
-    so = (SparseObj*) (*v);
+    auto* so = static_cast<SparseObj*>(*v);
     if (!so) {
         so = detail::sparse_thread::create_sparseobj();
-        *v = (void*) so;
+        *v = so;
     }
-    if (so->oldfun != fun) {
-        so->oldfun = fun;
-        detail::sparse_thread::create_coef_list(so, n, fun, p, ppvar, thread, nt); /* calls fun
-                                                                                      twice */
+    static_assert(sizeof(void*) == sizeof(fun), "This code assumes function pointers fit in void*");
+    if (so->oldfun != reinterpret_cast<void*>(fun)) {
+        so->oldfun = reinterpret_cast<void*>(fun);
+        // calls fun twice
+        detail::sparse_thread::create_coef_list(so, n, fun, args...);
     }
     for (i = 0; i < n; i++) { /*save old state*/
         d_(i) = s_(i);
     }
     for (err = 1, j = 0; err > CONVERGE; j++) {
         detail::sparse_thread::init_coef_list(so);
-        (*fun)(so, so->rhs, p, ppvar, thread, nt);
+        fun(so, so->rhs, args...);
         if ((ierr = detail::sparse_thread::matsol(so))) {
             return ierr;
         }
@@ -704,7 +698,7 @@ int sparse_thread(void** v,
             break;
     }
     detail::sparse_thread::init_coef_list(so);
-    (*fun)(so, so->rhs, p, ppvar, thread, nt);
+    fun(so, so->rhs, args...);
     for (i = 0; i < n; i++) { /*restore Dstate at t+dt*/
         d_(i) = (s_(i) - d_(i)) / dt;
     }
@@ -712,15 +706,13 @@ int sparse_thread(void** v,
 }
 
 /* for solving ax=b */
-template <typename Array>
+template <typename Array, typename Callable, typename... Args>
 int _cvode_sparse_thread(void** v,
                          int n,
                          int* x,
                          Array p,
-                         int (*fun)(void*, double*, double*, Datum*, Datum*, NrnThread*),
-                         Datum* ppvar,
-                         Datum* thread,
-                         NrnThread* nt) {
+                         Callable fun,
+                         Args... args) {
     auto const x_ = [&p, x](auto arg) -> auto& {
         return p[x[arg]];
     };
@@ -732,13 +724,14 @@ int _cvode_sparse_thread(void** v,
         so = detail::sparse_thread::create_sparseobj();
         *v = (void*) so;
     }
-    if (so->oldfun != fun) {
-        so->oldfun = fun;
+    static_assert(sizeof(void*) == sizeof(fun), "This code assumes function pointers fit in void*");
+    if (so->oldfun != reinterpret_cast<void*>(fun)) {
+        so->oldfun = reinterpret_cast<void*>(fun);
         // calls fun twice
-        detail::sparse_thread::create_coef_list(so, n, fun, p, ppvar, thread, nt);
+        detail::sparse_thread::create_coef_list(so, n, fun, args...);
     }
     detail::sparse_thread::init_coef_list(so);
-    (*fun)(so, so->rhs, p, ppvar, thread, nt);
+    fun(so, so->rhs, args...);
     if ((ierr = detail::sparse_thread::matsol(so))) {
         return ierr;
     }

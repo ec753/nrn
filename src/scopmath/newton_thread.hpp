@@ -25,7 +25,7 @@ namespace detail::newton_thread {
  * @param value pointer to array of addresses of function values
  * @param[out] jacobian computed jacobian matrix
  */
-template <typename Array, typename Callable>
+template <typename Array, typename Callable, typename... Args>
 void buildjacobian(NewtonSpace* ns,
                    int n,
                    int* index,
@@ -33,9 +33,7 @@ void buildjacobian(NewtonSpace* ns,
                    Callable pfunc,
                    double* value,
                    double** jacobian,
-                   Datum* ppvar,
-                   Datum* thread,
-                   NrnThread* nt) {
+                   Args... args) {
     int i, j;
     double increment, *high_value, *low_value;
 
@@ -48,11 +46,11 @@ void buildjacobian(NewtonSpace* ns,
         for (j = 0; j < n; j++) {
             increment = std::fmax(fabs(0.02 * (x[index[j]])), STEP);
             x[index[j]] += increment;
-            (*pfunc)(x, ppvar, thread, nt);
+            pfunc(args...);
             for (i = 0; i < n; i++)
                 high_value[i] = value[i];
             x[index[j]] -= 2.0 * increment;
-            (*pfunc)(x, ppvar, thread, nt);
+            pfunc(args...);
             for (i = 0; i < n; i++) {
                 low_value[i] = value[i];
 
@@ -64,17 +62,17 @@ void buildjacobian(NewtonSpace* ns,
             /* Restore original variable and function values. */
 
             x[index[j]] += increment;
-            (*pfunc)(x, ppvar, thread, nt);
+            pfunc(args...);
         }
     } else {
         for (j = 0; j < n; j++) {
             increment = std::fmax(fabs(0.02 * (x[j])), STEP);
             x[j] += increment;
-            (*pfunc)(x, ppvar, thread, nt);
+            pfunc(args...);
             for (i = 0; i < n; i++)
                 high_value[i] = value[i];
             x[j] -= 2.0 * increment;
-            (*pfunc)(x, ppvar, thread, nt);
+            pfunc(args...);
             for (i = 0; i < n; i++) {
                 low_value[i] = value[i];
 
@@ -86,7 +84,7 @@ void buildjacobian(NewtonSpace* ns,
             /* Restore original variable and function values. */
 
             x[j] += increment;
-            (*pfunc)(x, ppvar, thread, nt);
+            pfunc(args...);
         }
     }
 }
@@ -107,16 +105,14 @@ void buildjacobian(NewtonSpace* ns,
  * @returns 0 if no error; 2 if matrix is singular or ill-conditioned; 1 if maximum iterations
  * exceeded
  */
-template <typename Array, typename Function>
+template <typename Array, typename Function, typename... Args>
 int nrn_newton_thread(NewtonSpace* ns,
                       int n,
                       int* index,
                       Array x,
                       Function pfunc,
                       double* value,
-                      Datum* ppvar,
-                      Datum* thread,
-                      NrnThread* nt) {
+                      Args... args) {
     int i, count = 0, error, *perm;
     double **jacobian, *delta_x, change = 1.0, max_dev, temp;
 
@@ -137,7 +133,7 @@ int nrn_newton_thread(NewtonSpace* ns,
              */
 
             detail::newton_thread::buildjacobian(
-                ns, n, index, x, pfunc, value, jacobian, ppvar, thread, nt);
+                ns, n, index, x, pfunc, value, jacobian, args...);
             for (i = 0; i < n; i++)
                 value[i] = -value[i]; /* Required correction to
                                        * function values */
@@ -145,7 +141,7 @@ int nrn_newton_thread(NewtonSpace* ns,
             if ((error = nrn_crout_thread(ns, n, jacobian, perm)) != SUCCESS)
                 break;
         }
-        nrn_scopmath_solve_thread(n, jacobian, value, perm, delta_x, (int*) 0);
+        nrn_scopmath_solve_thread(n, jacobian, value, perm, delta_x, nullptr);
 
         /* Update solution vector and compute norms of delta_x and value */
 
@@ -163,7 +159,8 @@ int nrn_newton_thread(NewtonSpace* ns,
                 x[i] += delta_x[i];
             }
         }
-        (*pfunc)(x, ppvar, thread, nt); /* Evaluate function values with new solution */
+        // Evaluate function values with new solution
+        pfunc(args...);
         max_dev = 0.0;
         for (i = 0; i < n; i++) {
             value[i] = -value[i]; /* Required correction to function
