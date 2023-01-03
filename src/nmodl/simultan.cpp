@@ -22,7 +22,8 @@ void solv_nonlin(Item* qsol, Symbol* fun, Symbol* method, int numeqn, int listnu
     // examples of method->name: newton
     auto const tmpl = fudge(method->name, numeqn);
     Sprintf(buf,
-            "%s%s_slist%d, neuron::scopmath::row_view{_ml, _iml}, %s_wrapper_returning_int, _dlist%d);\n",
+            "%s%s_slist%d, neuron::scopmath::row_view{_ml, _iml}, %s_wrapper_returning_int, "
+            "_dlist%d);\n",
             method->name,
             tmpl.c_str(),
             listnum,

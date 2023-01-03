@@ -24,9 +24,9 @@ namespace neuron::scopmath {
  * @return 0 if no error; 2 if matrix is singular or ill-conditioned
  */
 template <typename Array>
-int simeq(int n, double **coef, Array soln, int *index) {
+int simeq(int n, double** coef, Array soln, int* index) {
   static int np = 0;
-  static int *perm = nullptr;
+  static int* perm = nullptr;
 
   /* Create and initialize permutation vector */
   if (np < n) {
