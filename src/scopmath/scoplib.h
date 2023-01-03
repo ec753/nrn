@@ -12,10 +12,12 @@
 #include "newton.hpp"
 #include "newton_thread.hpp"
 #include "runge.hpp"
+#include "simeq.hpp"
 #include "sparse.hpp"
 #include "sparse_thread.hpp"
 #include "ssimplic.hpp"
 #include "ssimplic_thread.hpp"
+#include "newton_struct.h"
 
 /* Memory allocation routines */
 int zero_matrix(double** matrix, int rows, int cols);
@@ -56,7 +58,6 @@ double romberg(double a, double b, int (*func)());
 double legendre(double a, double b, int (*func)());
 
 /* Solution of simultaneous algebraic equations */
-int simeq(int n, double** coef, double** soln, int* index);
 int invert(int n, double** matrix);
 int tridiag(int n, double* a, double* b, double* c, double* d, double* soln);
 

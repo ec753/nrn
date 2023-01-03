@@ -55,6 +55,7 @@ set(HEADER_FILES_TO_INSTALL
     runge.hpp
     scoplib.h
     section.h
+    simeq.hpp
     sparse.hpp
     sparse_thread.hpp
     spconfig.h
@@ -428,7 +429,6 @@ set(SCOPMATH_FILES_LIST
     romberg.cpp
     sawtooth.cpp
     sigmoid.cpp
-    simeq.cpp
     spline.cpp
     squarewa.cpp
     step.cpp
