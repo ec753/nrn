@@ -42,7 +42,8 @@
 #include "profile.h"
 #include "treeset.h"
 #include "utils/profile/profiler_interface.h"
-#include <unordered_map>
+
+#include <array>
 #include <unordered_set>
 
 typedef void (*ReceiveFunc)(Point_process*, double*, double);
