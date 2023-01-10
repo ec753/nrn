@@ -33,7 +33,7 @@ static void pr_memb(int type,
             }
             if (receives_events) {
                 fprintf(f, "%d nri %lu\n", cellnodes[inode], pnt2index.size());
-                Point_process* pp = (Point_process*) ml->pdata[i][1]._pvoid;
+                auto* pp = ml->pdata[i][1].get<Point_process*>();
                 pnt2index.emplace(pp, pnt2index.size());
             }
             for (int j = 0; j < size; ++j) {
@@ -188,7 +188,7 @@ void nrn_prcellstate(int gid, const char* suffix) {
     }
     // found it so create a <gid>_<suffix>.nrn file
     char buf[200];
-    sprintf(buf, "%d_%s.nrndat", gid, suffix);
+    Sprintf(buf, "%d_%s.nrndat", gid, suffix);
     FILE* f = fopen(buf, "w");
     assert(f);
     NrnThread& nt = *ps->nt_;

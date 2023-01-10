@@ -358,12 +358,11 @@ void NonLinImpRep::didv() {
         Memb_list* ml = tml->ml;
         for (j = 0; j < ml->nodecount; ++j) {
             Node* nd = ml->nodelist[j];
-            double x1;
             double x2;
             // zero rhs
             // save v
             NODERHS(nd) = 0;
-            x1 = NODEV(nd);
+            double x1 = NODEV(nd);
             // v+dv
             NODEV(nd) += delta_;
             current(i, ml, j);
@@ -681,7 +680,7 @@ int NonLinImpRep::gapsolve() {
 
     if (!success) {
         char buf[256];
-        sprintf(buf,
+        Sprintf(buf,
                 "Impedance calculation did not converge in %d iterations. Max state change on last "
                 "iteration was %g (Iterations stop at %g)\n",
                 maxiter_,

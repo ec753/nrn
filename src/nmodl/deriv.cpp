@@ -48,9 +48,9 @@ void solv_diffeq(Item* qsol,
     char ssprefix[8];
 
     if (method && strcmp(method->name, "cnexp") == 0) {
-        sprintf(buf, " %s();\n", fun->name);
+        Sprintf(buf, " %s();\n", fun->name);
         replacstr(qsol, buf);
-        sprintf(buf, " %s(_p, _ppvar, _thread, _nt);\n", fun->name);
+        Sprintf(buf, " %s(_p, _ppvar, _thread, _nt);\n", fun->name);
         vectorize_substitute(qsol, buf);
         return;
     }
@@ -98,10 +98,10 @@ void solv_diffeq(Item* qsol,
             Sprintf(buf, "static int _deriv%d_advance = 0;\n", listnum);
             q = linsertstr(procfunc, buf);
             Sprintf(buf,
-                    "\n#define _deriv%d_advance _thread[%d]._i\n"
+                    "\n#define _deriv%d_advance _thread[%d].literal_value<int>()\n"
                     "#define _dith%d %d\n"
-                    "#define _recurse _thread[%d]._i\n"
-                    "#define _newtonspace%d _thread[%d]._pvoid\n",
+                    "#define _recurse _thread[%d].literal_value<int>()\n"
+                    "#define _newtonspace%d _thread[%d].literal_value<NewtonSpace*>()\n",
                     listnum,
                     thread_data_index,
                     listnum,
@@ -110,18 +110,13 @@ void solv_diffeq(Item* qsol,
                     listnum,
                     thread_data_index + 3);
             vectorize_substitute(q, buf);
-            Sprintf(buf,
-                    "  _thread[_dith%d]._pval = (double*)ecalloc(%d, sizeof(double));\n",
-                    listnum,
-                    2 * numeqn);
+            Sprintf(buf, "  _thread[_dith%d] = new double[%d]{};\n", listnum, 2 * numeqn);
             lappendstr(thread_mem_init_list, buf);
             Sprintf(buf, "  _newtonspace%d = nrn_cons_newtonspace(%d);\n", listnum, numeqn);
             lappendstr(thread_mem_init_list, buf);
-            Sprintf(buf, "  free((void*)(_thread[_dith%d]._pval));\n", listnum);
+            Sprintf(buf, "  delete[] _thread[_dith%d].get<double*>();\n", listnum);
             lappendstr(thread_cleanup_list, buf);
-            Sprintf(buf,
-                    "  nrn_destroy_newtonspace(static_cast<NewtonSpace*>(_newtonspace%d));\n",
-                    listnum);
+            Sprintf(buf, "  nrn_destroy_newtonspace(_newtonspace%d);\n", listnum);
             lappendstr(thread_cleanup_list, buf);
             thread_data_index += 4;
         } else {
@@ -173,24 +168,25 @@ void solv_diffeq(Item* qsol,
         vectorize_substitute(qsol, buf);
     } else { /* kinetic */
         if (vectorize) {
-            Sprintf(buf,
-                    "%s%s_thread(&_thread[_spth%d]._pvoid, %d, _slist%d, _dlist%d, _p, &%s, %s, %s\
+            Sprintf(
+                buf,
+                "%s%s_thread(&(_thread[_spth%d].literal_value<void*>()), %d, _slist%d, _dlist%d, _p, &%s, %s, %s\
 , _linmat%d, _ppvar, _thread, _nt);\n",
-                    ssprefix,
-                    method->name,
-                    listnum,
-                    numeqn,
-                    listnum,
-                    listnum,
-                    indepsym->name,
-                    dindepname,
-                    fun->name,
-                    listnum);
+                ssprefix,
+                method->name,
+                listnum,
+                numeqn,
+                listnum,
+                listnum,
+                indepsym->name,
+                dindepname,
+                fun->name,
+                listnum);
             vectorize_substitute(qsol, buf);
         }
     }
     dtsav_for_nrn_state = 1;
-    sprintf(buf,
+    Sprintf(buf,
             "   if (secondorder) {\n"
             "    int _i;\n"
             "    for (_i = 0; _i < %d; ++_i) {\n"
@@ -861,16 +857,16 @@ int cvode_cnexp_success(Item* q1, Item* q2) {
             if (strcmp(a, "0.0") == 0) {
                 assert(b[strlen(b) - 9] == '/');
                 b[strlen(b) - 9] = '\0';
-                sprintf(buf, " __primary -= 0.5*dt*( %s )", b);
+                Sprintf(buf, " __primary -= 0.5*dt*( %s )", b);
                 lappendstr(netrec_cnexp, buf);
-                sprintf(buf, " %s = %s - dt*(%s)", s->name, s->name, b);
+                Sprintf(buf, " %s = %s - dt*(%s)", s->name, s->name, b);
             } else {
-                sprintf(buf,
+                Sprintf(buf,
                         " __primary += ( 1. - exp( 0.5*dt*( %s ) ) )*( %s - __primary )",
                         a,
                         b);
                 lappendstr(netrec_cnexp, buf);
-                sprintf(buf,
+                Sprintf(buf,
                         " %s = %s + (1. - exp(dt*(%s)))*(%s - %s)",
                         s->name,
                         s->name,
