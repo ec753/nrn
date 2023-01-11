@@ -169,7 +169,7 @@ extern "C" int nrnpython_start(int b) {
         // work with virtual environments.
         // But use only if not overridden by the PYTHONHOME environment variable.
         char* _p_pyhome = getenv("PYTHONHOME");
-        if (_p_pyhome == NULL) {
+        if (_p_pyhome == nullptr) {
             _p_pyhome = nrnpy_pyhome;
         }
 #if PY_VERSION_HEX >= 0x03080000
@@ -180,7 +180,6 @@ extern "C" int nrnpython_start(int b) {
             PyConfig_SetBytesString(&config, &_w_p_pyhome, _p_pyhome);
             config.home = _w_p_pyhome;
         }
-        Py_InitializeFromConfig(&config);
 #else
         if (_p_pyhome) {
             Py_SetPythonHome(mywstrdup(_p_pyhome));
@@ -193,6 +192,7 @@ extern "C" int nrnpython_start(int b) {
 #endif
 #if PY_VERSION_HEX >= 0x03080000
         PyConfig_SetBytesArgv(&config, nrn_global_argc, nrn_global_argv);
+        Py_InitializeFromConfig(&config);
 #else
         copy_argv_wcargv(nrn_global_argc, nrn_global_argv);
         PySys_SetArgv(nrn_global_argc, wcargv);
