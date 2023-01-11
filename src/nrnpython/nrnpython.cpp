@@ -150,7 +150,9 @@ extern "C" int nrnpython_start(int b) {
         }
         PyGILState_STATE gilsav = PyGILState_Ensure();
         Py_Finalize();
+#if PY_VERSION_HEX < 0x03080000
         del_wcargv(nrn_global_argc);
+#endif
         // because of finalize, no PyGILState_Release(gilsav);
         started = 0;
     } break;
