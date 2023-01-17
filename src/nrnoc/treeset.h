@@ -1,4 +1,5 @@
 #pragma once
+#include "multicore.h"
 #include "neuron/container/data_handle.hpp"
 double* nrn_recalc_ptr(double* old);
 /**
@@ -19,3 +20,5 @@ inline void nrn_forget_history(neuron::container::data_handle<double>& dh) {
     }
 }
 void nrn_register_recalc_ptr_callback(void (*f)());
+void update_actual_rhs_based_on_sp13_rhs(NrnThread* nt);
+void update_sp13_rhs_based_on_actual_rhs(NrnThread* nt);
