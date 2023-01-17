@@ -11,92 +11,6 @@ the source host owning the gid.
 
 #include "oc_ansi.h"
 
-#if 0
-void celldebug(const char* p, Gid2PreSyn& map) {
-	FILE* f;
-	char fname[100];
-	Sprintf(fname, "debug.%d", nrnmpi_myid);
-	f = fopen(fname, "a");
-	fprintf(f, "\n%s\n", p);
-	int rank = nrnmpi_myid;
-	fprintf(f, "  %2d:", rank);
-	for (const auto& iter: map) {
-		int gid = iter.first;
-		fprintf(f, " %2d", gid);
-	}
-	fprintf(f, "\n");
-	fclose(f);
-}
-
-void alltoalldebug(const char* p, int* s, int* scnt, int* sdispl, int* r, int* rcnt, int* rdispl){
-	FILE* f;
-	char fname[100];
-	Sprintf(fname, "debug.%d", nrnmpi_myid);
-	f = fopen(fname, "a");
-	fprintf(f, "\n%s\n", p);
-	int rank = nrnmpi_myid;
-	fprintf(f, "  rank %d\n", rank);
-	for (int i=0; i < nrnmpi_numprocs; ++i) {
-		fprintf(f, "    s%d : %d %d :", i, scnt[i], sdispl[i]);
-		for (int j = sdispl[i]; j < sdispl[i+1]; ++j) {
-			fprintf(f, " %2d", s[j]);
-		}
-		fprintf(f, "\n");
-	}
-	for (int i=0; i < nrnmpi_numprocs; ++i) {
-		fprintf(f, "    r%d : %d %d :", i, rcnt[i], rdispl[i]);
-		for (int j = rdispl[i]; j < rdispl[i+1]; ++j) {
-			fprintf(f, " %2d", r[j]);
-		}
-		fprintf(f, "\n");
-	}
-	fclose(f);
-}
-#else
-void celldebug(const char* p, Gid2PreSyn& map) {}
-void alltoalldebug(const char* p, int* s, int* scnt, int* sdispl, int* r, int* rcnt, int* rdispl) {}
-#endif
-
-#if 0
-void phase1debug() {
-	FILE* f;
-	char fname[100];
-	Sprintf(fname, "debug.%d", nrnmpi_myid);
-	f = fopen(fname, "a");
-	fprintf(f, "\nphase1debug %d", nrnmpi_myid);
-	for (const auto* iter: gid2out_) {
-		PreSyn* ps = iter.second;
-		fprintf(f, "\n %2d:", ps->gid_);
-		BGP_DMASend* bs = ps->bgp.dma_send_;
-		for (int i=0; i < bs->ntarget_hosts_; ++i) {
-			fprintf(f, " %2d", bs->target_hosts_[i]);
-		}
-	}
-	fprintf(f, "\n");
-	fclose(f);
-}
-
-void phase2debug() {
-	FILE* f;
-	char fname[100];
-	Sprintf(fname, "debug.%d", nrnmpi_myid);
-	f = fopen(fname, "a");
-	fprintf(f, "\nphase2debug %d", nrnmpi_myid);
-	for (const auto& iter: gid2in_) {
-		PreSyn* ps = iter.second;
-		fprintf(f, "\n %2d:", ps->gid_);
-		BGP_DMASend_Phase2* bs = ps->bgp.dma_send_phase2_;
-	    if (bs) {
-		for (int i=0; i < bs->ntarget_hosts_phase2_; ++i) {
-			fprintf(f, " %2d", bs->target_hosts_phase2_[i]);
-		}
-	    }
-	}
-	fprintf(f, "\n");
-	fclose(f);
-}
-#endif
-
 static void del(int* a) {
     if (a) {
         delete[] a;
@@ -136,34 +50,14 @@ static void all2allv_helper(int* scnt, int* sdispl, int*& rcnt, int*& rdispl) {
     rdispl = newoffset(rcnt, np);
 }
 
-/*
-define following to 1 if desire space/performance information such as:
-all2allv_int gidin to intermediate space=1552 total=37345104 time=0.000495835
-all2allv_int gidout space=528 total=37379376 time=1.641e-05
-all2allv_int lists space=3088 total=37351312 time=4.4708e-05
-*/
-#define all2allv_perf 0
 // input s, scnt, sdispl ; output, newly allocated r, rcnt, rdispl
 static void
 all2allv_int(int* s, int* scnt, int* sdispl, int*& r, int*& rcnt, int*& rdispl, const char* dmes) {
-#if all2allv_perf
-    double tm = nrnmpi_wtime();
-#endif
     int np = nrnmpi_numprocs;
     all2allv_helper(scnt, sdispl, rcnt, rdispl);
     r = newintval(0, rdispl[np]);
 
     nrnmpi_int_alltoallv(s, scnt, sdispl, r, rcnt, rdispl);
-    alltoalldebug(dmes, s, scnt, sdispl, r, rcnt, rdispl);
-
-    // when finished with r, rcnt, rdispl, caller should del them.
-#if all2allv_perf
-    if (nrnmpi_myid == 0) {
-        int nb = 4 * nrnmpi_numprocs + sdispl[nrnmpi_numprocs] + rdispl[nrnmpi_numprocs];
-        tm = nrnmpi_wtime() - tm;
-        printf("all2allv_int %s space=%d total=%llu time=%g\n", dmes, nb, nrn_mallinfo(0), tm);
-    }
-#endif
 }
 
 class TarList {
@@ -225,7 +119,7 @@ static int iran(int i1, int i2) {
 }
 
 static void phase2organize(TarList* tl) {
-    // copied and modified from old specify_phase2_distribution of bgpdma.cpp
+    // copied and modified from old specify_phase2_distribution of multisend.cpp
     int n, nt;
     nt = tl->size;
     n = int(sqrt(double(nt)));
@@ -269,22 +163,22 @@ to not use any PreSyn information.
 */
 
 static int setup_target_lists(int**);
-static void fill_dma_send_lists(int, int*);
+static void fill_multisend_send_lists(int, int*);
 
-static void setup_presyn_dma_lists() {
-    // Create and attach BGP_DMASend instances to output Presyn
+static void setup_presyn_multisend_lists() {
+    // Create and attach Multisend_Send instances to output Presyn
     for (const auto& iter: gid2out_) {
         PreSyn* ps = iter.second;
         // only ones that generate spikes. eg. multisplit
         // registers a gid and even associates with a cell piece, but
         // that piece may not send spikes.
         if (ps->output_index_ >= 0) {
-            bgpdma_cleanup_presyn(ps);
-            ps->bgp.dma_send_ = new BGP_DMASend();
+            nrn_multisend_cleanup_presyn(ps);
+            ps->bgp.multisend_send_ = new Multisend_Send();
         }
     }
 
-    // Need to use the bgp union slot for dma_send_phase2_.
+    // Need to use the bgp union slot for multisend_send_phase2_.
     // Only will be non-NULL if the input is a phase 2 sender.
     for (const auto& iter: gid2in_) {
         PreSyn* ps = iter.second;
@@ -293,14 +187,14 @@ static void setup_presyn_dma_lists() {
 
     int* r;
     int sz = setup_target_lists(&r);
-    fill_dma_send_lists(sz, r);
+    fill_multisend_send_lists(sz, r);
     del(r);
 
     //	phase1debug();
     //	phase2debug();
 }
 
-static void fill_dma_send_lists(int sz, int* r) {
+static void fill_multisend_send_lists(int sz, int* r) {
     // sequence of gid, size, [totalsize], list
     // Note that totalsize is there only for output gid's and use_phase2_.
     // Using this sequence, copy lists to proper phase
@@ -314,8 +208,8 @@ static void fill_dma_send_lists(int sz, int* r) {
             auto iter = gid2in_.find(gid);
             if (iter != gid2in_.end()) {
                 ps = iter->second;
-                BGP_DMASend_Phase2* bsp = new BGP_DMASend_Phase2();
-                ps->bgp.dma_send_phase2_ = bsp;
+                Multisend_Send_Phase2* bsp = new Multisend_Send_Phase2();
+                ps->bgp.multisend_send_phase2_ = bsp;
                 bsp->ntarget_hosts_phase2_ = size;
                 int* p = newintval(0, size);
                 bsp->target_hosts_phase2_ = p;
@@ -330,7 +224,7 @@ static void fill_dma_send_lists(int sz, int* r) {
             auto iter = gid2out_.find(gid);
             nrn_assert(iter != gid2out_.end());
             ps = iter->second;
-            BGP_DMASend* bs = ps->bgp.dma_send_;
+            Multisend_Send* bs = ps->bgp.multisend_send_;
             bs->ntarget_hosts_phase1_ = size;
             if (use_phase2_ == 0) {
                 bs->ntarget_hosts_ = size;
@@ -354,19 +248,19 @@ static void fill_dma_send_lists(int sz, int* r) {
     for (const auto& iter: gid2out_) {
         PreSyn* ps = iter.second;
         if (ps->output_index_ >= 0) {  // only ones that generate spikes
-            BGP_DMASend* bs = ps->bgp.dma_send_;
+            Multisend_Send* bs = ps->bgp.multisend_send_;
             if (max_ntarget_host < bs->ntarget_hosts_) {
                 max_ntarget_host = bs->ntarget_hosts_;
             }
-            if (max_multisend_targets < bs->NTARGET_HOSTS_PHASE1) {
-                max_multisend_targets = bs->NTARGET_HOSTS_PHASE1;
+            if (max_multisend_targets < bs->ntarget_hosts_phase1_) {
+                max_multisend_targets = bs->ntarget_hosts_phase1_;
             }
         }
     }
     if (use_phase2_)
         for (const auto& iter: gid2in_) {
             PreSyn* ps = iter.second;
-            BGP_DMASend_Phase2* bsp = ps->bgp.dma_send_phase2_;
+            Multisend_Send_Phase2* bsp = ps->bgp.multisend_send_phase2_;
             if (bsp && max_multisend_targets < bsp->ntarget_hosts_phase2_) {
                 max_multisend_targets = bsp->ntarget_hosts_phase2_;
             }
@@ -378,9 +272,6 @@ static void fill_dma_send_lists(int sz, int* r) {
 static int setup_target_lists(int** r_return) {
     int *s, *r, *scnt, *rcnt, *sdispl, *rdispl;
     int nhost = nrnmpi_numprocs;
-
-    celldebug("output gid", gid2out_);
-    celldebug("input gid", gid2in_);
 
     // What are the target ranks for a given input gid. All the ranks
     // with the same input gid send that gid to the intermediate
@@ -541,7 +432,7 @@ static int setup_target_lists(int** r_return) {
     // (individually) lists for first and second phases, has a
     // gid, size, totalsize header for each list where totalsize
     // is only present if the gid is an output gid (for
-    // BGP_DMASend.ntarget_host used for conservation).
+    // Multisend_Send.ntarget_host used for conservation).
     // Note that totalsize is tl->indices[tl->size]
 
     // how much to send to each rank
