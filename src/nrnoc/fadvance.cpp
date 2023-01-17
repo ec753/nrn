@@ -598,7 +598,15 @@ static void update(NrnThread* _nt) {
                 node->v() += NODERHS(_nt->_v_node[i]);
             }
             if (use_sparse13) {
+                // Update _sp13_rhs based on actual_rhs
+                for(int i = 0; i < _nt->end; i++) {
+                    _nt->_sp13_rhs[_nt->_v_node[i]->eqn_index_] = _nt->actual_rhs(i);
+                }
                 nrndae_update();
+                // Update actual_rhs based on _sp13_rhs
+                for(int i = 0; i < _nt->end; i++) {
+                    _nt->actual_rhs(i) = _nt->_sp13_rhs[_nt->_v_node[i]->eqn_index_];
+                }
             }
         }
     } /* end of non-vectorized update */
@@ -924,7 +932,14 @@ void nrn_finitialize(int setv, double v) {
             }
     }
     if (use_sparse13) {
+        // Update _sp13_rhs based on actual_rhs
+        for(int i = 0; i < _nt->end; i++) {
+            _nt->_sp13_rhs[_nt->_v_node[i]->eqn_index_] = _nt->actual_rhs(i);
+        }
         nrndae_init();
+        for(int i = 0; i < _nt->end; i++) {
+            _nt->actual_rhs(i) = _nt->_sp13_rhs[_nt->_v_node[i]->eqn_index_];
+        }
     }
 
     init_net_events();
