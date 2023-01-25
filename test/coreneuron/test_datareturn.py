@@ -1,5 +1,5 @@
 # Test of data return covering most of the functionality.
-import distutils.util
+from neuron.tests.utils.strtobool import strtobool
 import itertools
 import os
 
@@ -176,7 +176,7 @@ def test_datareturn():
     coreneuron.enable = True
     coreneuron.verbose = 0
     coreneuron.gpu = bool(
-        distutils.util.strtobool(os.environ.get("CORENRN_ENABLE_GPU", "false"))
+        strtobool(os.environ.get("CORENRN_ENABLE_GPU", "false"))
     )
 
     results = []

@@ -1,4 +1,4 @@
-import distutils.util
+from neuron.tests.utils.strtobool import strtobool
 import os
 
 from neuron import h, gui
@@ -39,7 +39,7 @@ def test_direct_memory_transfer():
     coreneuron.verbose = 0
     coreneuron.model_stats = True
     coreneuron.gpu = bool(
-        distutils.util.strtobool(os.environ.get("CORENRN_ENABLE_GPU", "false"))
+        strtobool(os.environ.get("CORENRN_ENABLE_GPU", "false"))
     )
     coreneuron.num_gpus = 1
 
