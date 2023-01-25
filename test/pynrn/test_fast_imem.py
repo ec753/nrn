@@ -350,9 +350,7 @@ def test_fastimem_corenrn():
 
         coreneuron.enable = True
         coreneuron.verbose = 0
-        coreneuron.gpu = strtobool(
-            os.environ.get("CORENRN_ENABLE_GPU", "false")
-        )
+        coreneuron.gpu = strtobool(os.environ.get("CORENRN_ENABLE_GPU", "false"))
         tolerance = 5e-11
         run(tstop)
         compare("CoreNEURON online mode", rel_tol=tolerance)

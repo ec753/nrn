@@ -162,7 +162,9 @@ class CMakeAugmentedBuilder(build_ext):
                     ext.cmake_install_prefix, ext.cmake_install_python_files
                 )
                 if os.path.isdir(src_py_dir):
-                    copytree(src_py_dir, self.build_lib, dirs_exist_ok=True)
+                    copytree(
+                        src_py_dir, self.build_lib, dirs_exist_ok=True
+                    )
                     shutil.rmtree(src_py_dir)  # avoid being collected to data dir
 
                 for d in ext.cmake_collect_dirs:
@@ -220,7 +222,9 @@ class CMakeAugmentedBuilder(build_ext):
         try:
             # Configure project
             subprocess.Popen("echo $CXX", shell=True, stdout=subprocess.PIPE)
-            logging.info("[CMAKE] cmd: %s", " ".join([cmake, ext.sourcedir] + cmake_args))
+            logging.info(
+                "[CMAKE] cmd: %s", " ".join([cmake, ext.sourcedir] + cmake_args)
+            )
             subprocess.check_call(
                 [cmake, ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env
             )

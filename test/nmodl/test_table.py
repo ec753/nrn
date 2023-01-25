@@ -12,9 +12,7 @@ def test_table():
     coreneuron_enable = bool(
         strtobool(os.environ.get("NRN_CORENEURON_ENABLE", "false"))
     )
-    coreneuron_gpu = bool(
-        strtobool(os.environ.get("CORENRN_ENABLE_GPU", "false"))
-    )
+    coreneuron_gpu = bool(strtobool(os.environ.get("CORENRN_ENABLE_GPU", "false")))
     table_cell.simulate(1, 0.1, coreneuron_enable, coreneuron_gpu)
 
     print(table_cell.record_vectors)

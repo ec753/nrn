@@ -175,9 +175,7 @@ def test_datareturn():
     h.CVode().cache_efficient(1)
     coreneuron.enable = True
     coreneuron.verbose = 0
-    coreneuron.gpu = bool(
-        strtobool(os.environ.get("CORENRN_ENABLE_GPU", "false"))
-    )
+    coreneuron.gpu = bool(strtobool(os.environ.get("CORENRN_ENABLE_GPU", "false")))
 
     results = []
     cell_permute_values = (1, 2) if coreneuron.gpu else (0, 1)

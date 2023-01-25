@@ -14,9 +14,7 @@ def test_kinetic():
     coreneuron_enable = bool(
         strtobool(os.environ.get("NRN_CORENEURON_ENABLE", "false"))
     )
-    coreneuron_gpu = bool(
-        strtobool(os.environ.get("CORENRN_ENABLE_GPU", "false"))
-    )
+    coreneuron_gpu = bool(strtobool(os.environ.get("CORENRN_ENABLE_GPU", "false")))
     cadifus_cell.simulate(1, 0.1, coreneuron_enable, coreneuron_gpu)
     assert np.isclose([cadifus_cell.record_vectors["ca_ion[0]"][2]], [5e-05])
 
