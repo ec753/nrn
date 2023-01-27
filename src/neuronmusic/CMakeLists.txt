@@ -10,9 +10,7 @@ set(CXX ${CMAKE_CXX_COMPILER})
 
 nrn_configure_file(setup.py src/neuronmusic)
 
-if(NRN_ENABLE_MUSIC
-   AND NRN_ENABLE_MODULE_INSTALL
-   AND NRN_ENABLE_PYTHON)
+if(NRN_ENABLE_MUSIC AND NRN_ENABLE_PYTHON)
 
   # Prepare a shell script to run python setup.py
   file(
@@ -26,7 +24,6 @@ mingw=${MINGW}\n\
 shift\n\
 export LDCSHARED=\"${CMAKE_C_COMPILER} ${CMAKE_SHARED_LIBRARY_CREATE_C_FLAGS}\"\n\
 export LDCXXSHARED=\"${CMAKE_CXX_COMPILER} ${CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS}\"\n\
-export SETUPTOOLS_USE_DISTUTILS=stdlib
 if test x$mingw = x1 ; then\n\
   pyver=`$pyexe -c 'import sys; print (sys.version_info[0]); quit()'`\n\
   echo pyver=$pyver\n\
@@ -97,8 +94,7 @@ fi\n\
 echo 'Installing python module using:'\n\
 set -ex\n\
 cd ${CMAKE_CURRENT_BINARY_DIR}\n\
-export SETUPTOOLS_USE_DISTUTILS=stdlib
-$1 setup.py --quiet build --build-lib=${NRN_PYTHON_BUILD_LIB} install ${NRN_MODULE_INSTALL_OPTIONS}\n\
+$1 setup.py --quiet build --build-lib=${NRN_PYTHON_BUILD_LIB}\n\
 ")
   foreach(pyexe ${NRN_PYTHON_EXE_LIST})
     # install(CODE ...) only takes a single CMake code expression, so we can't easily roll our own

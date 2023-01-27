@@ -30,9 +30,7 @@ nrn_configure_file(setup.py share/lib/python/neuron/rxd/geometry3d)
 
 set(basenames ctng surfaces graphicsPrimitives)
 
-if(NRN_ENABLE_RX3D
-   AND NRN_ENABLE_MODULE_INSTALL
-   AND NRN_ENABLE_PYTHON)
+if(NRN_ENABLE_RX3D AND NRN_ENABLE_PYTHON)
   # ~~~
   # For MINGW, python3 uses msvc
   # The following shell script carries out the craziness when
@@ -70,7 +68,6 @@ mingw=${MINGW}\n\
 shift\n\
 export LDCSHARED=\"${CMAKE_C_COMPILER} ${CMAKE_SHARED_LIBRARY_CREATE_C_FLAGS}\"\n\
 export LDCXXSHARED=\"${CMAKE_CXX_COMPILER} ${CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS}\"\n\
-export SETUPTOOLS_USE_DISTUTILS=stdlib
 if test x$mingw = x1 ; then\n\
   pyver=`$pyexe -c 'import sys; print (sys.version_info[0]); quit()'`\n\
   echo pyver=$pyver\n\

@@ -152,118 +152,77 @@ install(
   PATTERN *.dat)
 
 # =============================================================================
-# If NEURON python module installation is enabled
+# NEURON python modules custom handling
 # =============================================================================
-if(NRN_ENABLE_MODULE_INSTALL)
 
-  # All variables are set, prepare setup.py for python module install
-  nrn_configure_file(setup.py src/nrnpython)
+# All variables are set, prepare setup.py for python modules
+nrn_configure_file(setup.py src/nrnpython)
 
-  # Setup MinGW toolchain for setuptools
-  if(MINGW)
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/setup.cfg "[build]\ncompiler=mingw32")
-
-    # replace windows path of the form C:/msys64 to C:\msys64
-    string(REPLACE ":/" ":\\\\" module_install_opts "${NRN_MODULE_INSTALL_OPTIONS}")
-    set(NRN_MODULE_INSTALL_OPTIONS
-        "${module_install_opts}"
-        CACHE INTERNAL "" FORCE)
-  endif()
-
-  # Here and for the neuron/rxd/geometry3d extensions, we build the neuron module in lib/python
-  set(NRN_PYTHON_BUILD_LIB
-      ${PROJECT_BINARY_DIR}/lib/python
-      CACHE INTERNAL "" FORCE)
-
-  # ~~~
-  # To tickle setup.py into actually rebuilding if dependencies change,
-  # need to copy inithoc.cpp in from source to binary dir if any module
-  # dependent changes and make a custom target as well.
-  # ~~~
-  set(binary_dir_filename ${CMAKE_CURRENT_BINARY_DIR}/inithoc.cpp)
-  set(source_dir_filename ${CMAKE_CURRENT_SOURCE_DIR}/inithoc.cpp)
-  set(inithoc_hdeps
-      ${CMAKE_CURRENT_SOURCE_DIR}/../oc/nrnmpi.h ${CMAKE_CURRENT_BINARY_DIR}/../oc/nrnmpiuse.h
-      ${CMAKE_CURRENT_BINARY_DIR}/nrnpython_config.h)
-
-  add_custom_command(
-    OUTPUT ${binary_dir_filename}
-    COMMAND cp ${source_dir_filename} ${binary_dir_filename}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    DEPENDS ${source_dir_filename} ${CMAKE_CURRENT_BINARY_DIR}/setup.py ${inithoc_hdeps})
-
-  add_custom_target(
-    hoc_module ALL
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    DEPENDS ${binary_dir_filename})
-
-  # =============================================================================
-  # Copy necessary files to build directory
-  # =============================================================================
-  add_dependencies(hoc_module copy_share_demo_to_build copy_share_lib_to_build)
-
-  # =============================================================================
-  # Build python module
-  # =============================================================================
-  # for each python detected / provided by user, install module at install time
-
-  # Workaround for: https://github.com/neuronsimulator/nrn/issues/1605 See:
-  # https://setuptools.pypa.io/en/latest/deprecated/distutils-legacy.html
-  # https://setuptools.pypa.io/en/latest/history.html#id228
-  set(extra_env ${CMAKE_COMMAND} -E env "SETUPTOOLS_USE_DISTUTILS=stdlib")
-
-  if(NRN_SANITIZERS)
-    # Make sure the same compiler (currently always clang in the sanitizer builds) is used to link
-    # as was used to build. By default, Python will try to use the compiler that was used to build
-    # Python, which is often gcc.
-    list(APPEND extra_env "LDCSHARED=${CMAKE_C_COMPILER} ${CMAKE_SHARED_LIBRARY_CREATE_C_FLAGS}"
-         "LDCXXSHARED=${CMAKE_CXX_COMPILER} ${CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS}")
-  endif()
-
-  foreach(pyexe ${NRN_PYTHON_EXE_LIST})
-    add_custom_command(
-      TARGET hoc_module
-      POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/inithoc.cpp
-              ${CMAKE_CURRENT_BINARY_DIR}/inithoc.cpp
-      COMMAND ${extra_env} ${pyexe} setup.py --quiet build --build-lib=${NRN_PYTHON_BUILD_LIB}
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMENT "Building python module with: ${pyexe}")
-  endforeach(pyexe)
-
-  add_dependencies(hoc_module nrniv_lib ${nrnpython_lib_list})
-  if(NRN_ENABLE_RX3D)
-    add_dependencies(hoc_module rxd_cython_generated)
-  endif()
-
-  # ~~~
-  # neuron module (possibly with multiple extension versions) was built
-  # in NRN_PYTHON_BUILD_LIB. Not a problem if install overwrites multiple
-  # times to same install folder or if each install ends up in different
-  # place.
-  # ~~~
-  file(
-    WRITE ${CMAKE_CURRENT_BINARY_DIR}/neuron_module_install.sh
-    "\
-#!bash\n\
-echo 'Installing python module using:'\n\
-set -ex\n\
-cd ${CMAKE_CURRENT_BINARY_DIR}\n\
-export SETUPTOOLS_USE_DISTUTILS=stdlib
-$1 setup.py --quiet build --build-lib=${NRN_PYTHON_BUILD_LIB} install ${NRN_MODULE_INSTALL_OPTIONS}\n\
-")
-  foreach(pyexe ${NRN_PYTHON_EXE_LIST})
-    # install(CODE ...) only takes a single CMake code expression, so we can't easily roll our own
-    # check on the return code. Modern CMake versions support the COMMAND_ERROR_IS_FATAL option,
-    # which will cause the installation to abort if the shell script returns an error code.
-    if(${CMAKE_VERSION} VERSION_LESS "3.19")
-      install(
-        CODE "execute_process(COMMAND bash ${CMAKE_CURRENT_BINARY_DIR}/neuron_module_install.sh ${pyexe})"
-      )
-    else()
-      install(
-        CODE "execute_process(COMMAND bash ${CMAKE_CURRENT_BINARY_DIR}/neuron_module_install.sh ${pyexe} COMMAND_ERROR_IS_FATAL LAST)"
-      )
-    endif()
-  endforeach(pyexe)
+# Setup MinGW toolchain for setuptools
+if(MINGW)
+  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/setup.cfg "[build]\ncompiler=mingw32")
 endif()
+
+# Here and for the neuron/rxd/geometry3d extensions, we build the neuron module in lib/python
+set(NRN_PYTHON_BUILD_LIB
+    ${PROJECT_BINARY_DIR}/lib/python
+    CACHE INTERNAL "" FORCE)
+
+# ~~~
+# To tickle setup.py into actually rebuilding if dependencies change,
+# need to copy inithoc.cpp in from source to binary dir if any module
+# dependent changes and make a custom target as well.
+# ~~~
+set(binary_dir_filename ${CMAKE_CURRENT_BINARY_DIR}/inithoc.cpp)
+set(source_dir_filename ${CMAKE_CURRENT_SOURCE_DIR}/inithoc.cpp)
+set(inithoc_hdeps
+    ${CMAKE_CURRENT_SOURCE_DIR}/../oc/nrnmpi.h ${CMAKE_CURRENT_BINARY_DIR}/../oc/nrnmpiuse.h
+    ${CMAKE_CURRENT_BINARY_DIR}/nrnpython_config.h)
+
+add_custom_command(
+  OUTPUT ${binary_dir_filename}
+  COMMAND cp ${source_dir_filename} ${binary_dir_filename}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  DEPENDS ${source_dir_filename} ${CMAKE_CURRENT_BINARY_DIR}/setup.py ${inithoc_hdeps})
+
+add_custom_target(
+  hoc_module ALL
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  DEPENDS ${binary_dir_filename})
+
+# =============================================================================
+# Copy necessary files to build directory
+# =============================================================================
+add_dependencies(hoc_module copy_share_demo_to_build copy_share_lib_to_build)
+
+# =============================================================================
+# Build python module
+# =============================================================================
+
+if(NRN_SANITIZERS)
+  # Make sure the same compiler (currently always clang in the sanitizer builds) is used to link as
+  # was used to build. By default, Python will try to use the compiler that was used to build
+  # Python, which is often gcc.
+  list(APPEND extra_env "LDCSHARED=${CMAKE_C_COMPILER} ${CMAKE_SHARED_LIBRARY_CREATE_C_FLAGS}"
+       "LDCXXSHARED=${CMAKE_CXX_COMPILER} ${CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS}")
+endif()
+
+# for each python detected / provided by user, build the module
+foreach(pyexe ${NRN_PYTHON_EXE_LIST})
+  add_custom_command(
+    TARGET hoc_module
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/inithoc.cpp
+            ${CMAKE_CURRENT_BINARY_DIR}/inithoc.cpp
+    COMMAND ${extra_env} ${pyexe} setup.py --quiet build --build-lib=${NRN_PYTHON_BUILD_LIB}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Building python module with: ${pyexe}")
+endforeach(pyexe)
+
+add_dependencies(hoc_module nrniv_lib ${nrnpython_lib_list})
+if(NRN_ENABLE_RX3D)
+  add_dependencies(hoc_module rxd_cython_generated)
+endif()
+
+# install modules from NRN_PYTHON_BUILD_LIB
+install(DIRECTORY ${NRN_PYTHON_BUILD_LIB} DESTINATION lib)

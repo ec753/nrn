@@ -162,9 +162,7 @@ class CMakeAugmentedBuilder(build_ext):
                     ext.cmake_install_prefix, ext.cmake_install_python_files
                 )
                 if os.path.isdir(src_py_dir):
-                    copytree(
-                        src_py_dir, self.build_lib, dirs_exist_ok=True
-                    )
+                    copytree(src_py_dir, self.build_lib, dirs_exist_ok=True)
                     shutil.rmtree(src_py_dir)  # avoid being collected to data dir
 
                 for d in ext.cmake_collect_dirs:
@@ -368,7 +366,6 @@ def setup_package():
                 "-DNRN_ENABLE_MPI=" + ("ON" if Components.MPI else "OFF"),
                 "-DNRN_ENABLE_MPI_DYNAMIC=" + ("ON" if Components.MPI else "OFF"),
                 "-DNRN_ENABLE_PYTHON_DYNAMIC=ON",
-                "-DNRN_ENABLE_MODULE_INSTALL=OFF",
                 "-DNRN_ENABLE_REL_RPATH=ON",
                 "-DLINK_AGAINST_PYTHON=OFF",
                 "-DCMAKE_VERBOSE_MAKEFILE=OFF",
